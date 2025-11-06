@@ -12,6 +12,9 @@ class Profile < ApplicationRecord
   # Watch progress tracking
   has_many :watch_progresses, dependent: :destroy
   
+  # Featured items (personalized recommendations)
+  has_many :featured_items, dependent: :destroy
+  
   # Available colors for profiles
   COLORS = %w[red blue green yellow purple orange pink teal indigo cyan amber lime emerald sky violet rose].freeze
   

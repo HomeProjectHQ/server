@@ -1,5 +1,5 @@
 #!/bin/bash
-# Simple Auto workflow monitor - shows milestone events only
+# Simple Auto workflow monitor - shows Auto workflow events and job logs
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -11,6 +11,21 @@ if [ ! -f "$LOG_FILE" ]; then
 fi
 
 echo "Auto Workflow Monitor - Press Ctrl+C to stop"
+echo "Showing: Workflow events and job execution logs only"
 echo
 
-tail -f "$LOG_FILE" | grep -E '\[Auto::Node\] ✓|\[Scheduler\] Cycle:|\[Scheduler\] Transitioned|\[Auto::Scheduler\] ▶|\[Auto::Scheduler\] ■|\[Auto::MergeJob\]|\[MergeJob\] Convergence|\[ParallelJob\] Preparing'
+# Show only meaningful Auto workflow events:
+# - [Auto::Node] ✓ - Node completions
+# - [Scheduler] Cycle: - Work cycle summaries (when work happens)
+# - [Scheduler] Transitioned - Node transitions
+# - [Auto::Scheduler] ▶/■ - Workflow start/complete
+# - [Auto::WhereJob], [Auto::LlmJob], etc. - Actual job logs
+# - [Scheduler] Anti-entropy - Repair logs
+# 
+# Filter OUT:
+# - Idle cycles (too noisy when no work)
+# - ActiveJob lifecycle (Performing/Performed/Enqueued)
+# - SQL queries and transactions
+# - Re-enqueueing messages
+tail -f "$LOG_FILE" | \
+  grep --line-buffered -E '\[Auto::(Node|WhereJob|LlmJob|CreateJob|UpdateJob|FindByJob|FindOrCreateByJob|ConditionalJob|LoopJob|ForkJob|NoopJob|FileJob|FileSystemJob|FfmpegJob|MediaParserJob|TmdbJob)\]|\[Scheduler\] (Cycle: .*(started=[1-9]|jobs=[1-9]|transitioned=[1-9]|completed=[1-9]|failed=[1-9]|repaired=[1-9])|Transitioned|Anti-entropy)|\[Auto::Scheduler\] [▶■]'

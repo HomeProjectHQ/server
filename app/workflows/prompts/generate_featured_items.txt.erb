@@ -1,0 +1,51 @@
+Generate 5 featured items for this type of person:
+
+<%= profile.prompt %>
+
+CURRENT DATE/TIME:
+<%= Time.current.strftime("%A, %B %d, %Y at %I:%M %p") %>
+
+RECENT WATCH HISTORY (Past Week):
+<% if watch_history.any? %>
+<% watch_history.each do |record| %>
+- <%= record['attributes']['watchable_type'] %> (watched <%= Time.parse(record['attributes']['last_watched_at']).strftime("%A %I:%M%p") %>)
+<% end %>
+<% else %>
+No recent viewing history
+<% end %>
+
+AVAILABLE MOVIES:
+<% if movies.any? %>
+<% movies.each do |pm| %>
+- Movie ID: <%= pm['attributes']['movie_id'] %>
+<% end %>
+<% else %>
+No movies available
+<% end %>
+
+AVAILABLE TV SHOWS:
+<% if tv_shows.any? %>
+<% tv_shows.each do |pts| %>
+- Show ID: <%= pts['attributes']['tv_show_id'] %>
+<% end %>
+<% else %>
+No TV shows available
+<% end %>
+
+INSTRUCTIONS:
+1. Consider the person's profile, current time/day, and recent viewing patterns
+2. Choose from ONLY the movie IDs and TV show IDs listed above
+3. Use the exact IDs shown (movie_id and tv_show_id fields)
+4. Generate exactly 5 diverse featured items
+5. For each item, write a brief contextual caption (20-80 chars) explaining why NOW
+6. Item types can be: Movie (for films), TvShow (for series), or TvEpisode (for specific episodes)
+
+Examples of good captions:
+- "Perfect Friday night comfort watch"
+- "New episode ready to binge"
+- "Great for background while working"
+- "Continue where you left off"
+- "Getting into Halloween spirit 🎃"
+
+Return exactly 5 items with their type, id, and caption.
+

@@ -1,0 +1,26 @@
+---
+id: llm
+name: LLM Workflow
+description: Demonstrates LLM job usage with Apple Foundation Models
+args:
+  prompt: String
+nodes:
+  - id: simple_prompt
+    type: llm
+    start: true
+    args:
+      model: apple
+      prompt: Write a haiku about programming
+    next:
+      default: done
+    editor:
+      x: 0.0
+      "y": 0.0
+  - id: done
+    type: noop
+    end: true
+    editor:
+      x: 0.0
+      "y": 150.0
+    next:
+      default:

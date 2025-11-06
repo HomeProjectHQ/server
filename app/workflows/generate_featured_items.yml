@@ -1,0 +1,87 @@
+---
+id: generate_featured_tv_items
+name: Generate Featured TV Items
+description: Generate featured items for the TV client for a profile
+subject_type: Profile
+nodes:
+  - id: watch_history
+    name: Collect Watch History
+    type: where
+    start: true
+    args:
+      table: WatchProgress
+      conditions:
+        profile_id: "${subject.id}"
+        last_watched_at: "${1.week.ago..Time.current}"
+    next:
+      default: generate_epic_stage_items
+      not_found: generate_epic_stage_items
+    editor:
+      x: -625.0
+      "y": 800.0
+  - id: generate_epic_stage_items
+    name: Generate Epic Stage Items
+    type: llm
+    args:
+      model: apple
+      schema: FeaturedItems
+      prompt_name: generate_epic_stage_items
+      prompt_args:
+        profile: "${subject}"
+        watch_history: "${watch_history.data.records}"
+        movies: "${subject.movies}"
+        tv_shows: "${subject.tv_shows}"
+    next:
+      default: epic_stage_items
+    editor:
+      x: -625.0
+      "y": 1050.0
+  - id: epic_stage_items
+    name: For Each Epic Stage Item
+    type: loop
+    args:
+      loop_source: "${generate_epic_stage_items.items}"
+      loop_iteration: "${epic_stage_items.iteration}"
+    next:
+      loop: create_featured_item
+      done: destroy_stale_epic_stage_items
+    editor:
+      x: -625.0
+      "y": 1250.0
+  - id: create_featured_item
+    name: Create Featured Item
+    type: create
+    args:
+      table: FeaturedItem
+      values:
+        profile_id: "${subject.id}"
+        featurable_type: "${epic_stage_items.item.type}"
+        featurable_id: "${epic_stage_items.item.itemId}"
+        caption: "${epic_stage_items.item.caption}"
+        placements: "${['epic_stage']}"
+        generated_at: "${Time.current}"
+    next:
+      default: epic_stage_items
+    editor:
+      x: -800.0
+      "y": 1575.0
+  - id: destroy_stale_epic_stage_items
+    name: Destroy Stale Epic Stage Featured Items
+    type: destroy
+    args:
+      records:
+        "${subject.featured_items.where(placements: 'epic_stage').order(created_at:
+        :asc).offset(5)}"
+    next:
+      default: done
+    editor:
+      x: -500.0
+      "y": 1575.0
+  - id: done
+    type: noop
+    end: true
+    editor:
+      x: -500.0
+      "y": 1850.0
+    next:
+      default:

@@ -39,6 +39,12 @@ Rails.application.routes.draw do
         
         # Recommendations (up next)
         get 'recommendations/up_next', to: 'recommendations#up_next', as: 'recommendations_up_next'
+        
+        # Featured items (personalized recommendations with placements)
+        get 'featured', to: 'featured_items#index', as: 'featured_items'
+        post 'featured/generate', to: 'featured_items#generate', as: 'generate_featured_items'
+        delete 'featured', to: 'featured_items#destroy'
+        get 'featured/history', to: 'featured_items#history', as: 'featured_items_history'
       end
     end
     
