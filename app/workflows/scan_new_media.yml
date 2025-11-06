@@ -1,0 +1,80 @@
+---
+id: scan_new_media
+name: Scan for New Media (Incremental)
+description:
+  Fast incremental scan that only processes new files, skipping existing
+  ones
+nodes:
+  - id: media_folder_loop
+    name: Media Folder Loop
+    start: true
+    type: loop
+    args:
+      loop_source_rel: "${MediaFolder.enabled}"
+      loop_iteration: "${media_folder_loop.iteration}"
+    next:
+      loop: ls_movies
+      done: workflow_complete
+    editor:
+      x: -150.0
+      "y": -150.0
+  - id: ls_movies
+    name: Find All Movie Files
+    type: file_system
+    args:
+      operation: glob
+      path: "${media_folder_loop.item.path}/Movies-Kate"
+      pattern: "**/*.{mkv,mp4,avi,mov,m4v,wmv,flv,webm}"
+    next:
+      default: movies
+    editor:
+      x: -275.0
+      "y": 125.0
+  - id: movies
+    name: Process Movies in Parallel
+    type: fork
+    args:
+      workflow_id: process_movie
+      items: "${ls_movies}"
+      item_key: file_info
+    next:
+      join: ls_tv_shows
+    editor:
+      x: -275.0
+      "y": 300.0
+  - id: ls_tv_shows
+    name: Find All TV Episode Files
+    type: file_system
+    args:
+      operation: glob
+      path: "${media_folder_loop.item.path}/TV-Kate"
+      pattern: "**/*.{mkv,mp4,avi,mov,m4v,wmv,flv,webm}"
+    next:
+      default: tv_episodes
+    editor:
+      x: -275.0
+      "y": 575.0
+  - id: tv_episodes
+    name: Process TV Episodes in Parallel
+    type: fork
+    args:
+      workflow_id: process_tv_episode
+      items: "${ls_tv_shows}"
+      item_key: file_info
+    next:
+      join: media_folder_loop
+      editor:
+        x: -275.0
+        "y": 825.0
+    editor:
+      x: -275.0
+      "y": 750.0
+  - id: workflow_complete
+    name: Workflow Complete
+    end: true
+    type: noop
+    editor:
+      x: 100.0
+      "y": 125.0
+    next:
+      default:

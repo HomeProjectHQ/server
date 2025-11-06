@@ -1,0 +1,16 @@
+#!/bin/bash
+# Simple Auto workflow monitor - shows milestone events only
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+LOG_FILE="$APP_DIR/log/development.log"
+
+if [ ! -f "$LOG_FILE" ]; then
+  echo "Log file not found: $LOG_FILE"
+  exit 1
+fi
+
+echo "Auto Workflow Monitor - Press Ctrl+C to stop"
+echo
+
+tail -f "$LOG_FILE" | grep -E '\[Auto::Node\] ✓|\[Scheduler\] Cycle:|\[Scheduler\] Transitioned|\[Auto::Scheduler\] ▶|\[Auto::Scheduler\] ■|\[Auto::MergeJob\]|\[MergeJob\] Convergence|\[ParallelJob\] Preparing'

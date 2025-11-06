@@ -1,0 +1,29 @@
+development:
+  dispatchers:
+    - polling_interval: 1
+      batch_size: 500
+  workers:
+    - queues: auto_workflows
+      threads: 2
+      processes: 1
+      polling_interval: 0.1
+    - queues: auto_nodes
+      threads: 5 # ← Reduced from 10
+      processes: 2 # ← Reduced from 3
+      polling_interval: 0.1
+      # Total: 10 concurrent node jobs max
+
+production:
+  dispatchers:
+    - polling_interval: 1
+      batch_size: 500
+  workers:
+    - queues: auto_workflows
+      threads: 2
+      processes: 1
+      polling_interval: 0.1
+    - queues: auto_nodes
+      threads: 10 # ← Reduced from 20
+      processes: <%= ENV.fetch("JOB_CONCURRENCY", 3) %> # ← Reduced default from 5
+      polling_interval: 0.1
+      # Total: 30 concurrent node jobs max (or JOB_CONCURRENCY * 10)

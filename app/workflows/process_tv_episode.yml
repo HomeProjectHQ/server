@@ -1,0 +1,229 @@
+---
+id: process_tv_episode
+name: Process Single TV Episode File
+description: Check if episode exists, parse filename, search TMDB, create or update
+  episode record
+args:
+  file_info: File hash with path, name, type, mime_type
+nodes:
+- id: find_episode_by_path
+  name: Check if Episode Already Exists
+  start: true
+  type: find_by
+  args:
+    table: TvEpisode
+    key: file_path
+    value: "${workflow.args.file_info.path}"
+  next:
+    default: done
+    not_found: parse_tv_filename
+  editor:
+    x: 0.0
+    "y": 0.0
+- id: parse_tv_filename
+  name: Parse TV Filename
+  type: media_parser
+  args:
+    operation: tv_episode
+    path: "${workflow.args.file_info.path}"
+  next:
+    default: tmdb_tv_search
+  editor:
+    x: 0.0
+    "y": 200.0
+- id: tmdb_tv_search
+  name: TMDB TV Show Search
+  type: tmdb
+  args:
+    operation: search_tv
+    title: "${parse_tv_filename.show}"
+  next:
+    default: tmdb_tv_found
+    not_found: done
+  editor:
+    x: 0.0
+    "y": 400.0
+- id: tmdb_tv_found
+  name: TMDB TV Show Found
+  type: conditional
+  args:
+    condition: "${tmdb_tv_search.results}"
+  next:
+    'true': find_tv_show_by_tmdb
+    'false': done
+  editor:
+    x: -25.0
+    "y": 625.0
+- id: find_tv_show_by_tmdb
+  name: Check if TV Show Exists by TMDB ID
+  type: find_by
+  args:
+    table: TvShow
+    key: tmdb_id
+    value: "${tmdb_tv_search.results[0].id}"
+  next:
+    default: find_or_create_tv_season_existing
+    not_found: create_tv_show
+  editor:
+    x: -75.0
+    "y": 800.0
+- id: create_tv_show
+  name: Create New TV Show
+  type: create
+  args:
+    table: TvShow
+    values:
+      tmdb_id: "${tmdb_tv_search.results[0].id}"
+      title: "${tmdb_tv_search.results[0].name}"
+      original_name: "${tmdb_tv_search.results[0].original_name}"
+      year: "${tmdb_tv_search.results[0].first_air_date}"
+      first_air_date: "${tmdb_tv_search.results[0].first_air_date}"
+      last_air_date: "${tmdb_tv_search.results[0].last_air_date}"
+      overview: "${tmdb_tv_search.results[0].overview}"
+      tagline: "${tmdb_tv_search.results[0].tagline}"
+      poster_path: "${tmdb_tv_search.results[0].poster_path}"
+      backdrop_path: "${tmdb_tv_search.results[0].backdrop_path}"
+      status: "${tmdb_tv_search.results[0].status}"
+      vote_average: "${tmdb_tv_search.results[0].vote_average}"
+      vote_count: "${tmdb_tv_search.results[0].vote_count}"
+      popularity: "${tmdb_tv_search.results[0].popularity}"
+      original_language: "${tmdb_tv_search.results[0].original_language}"
+      homepage: "${tmdb_tv_search.results[0].homepage}"
+      number_of_episodes: "${tmdb_tv_search.results[0].number_of_episodes}"
+      number_of_seasons: "${tmdb_tv_search.results[0].number_of_seasons}"
+      in_production: "${tmdb_tv_search.results[0].in_production}"
+      type: "${tmdb_tv_search.results[0].type}"
+  next:
+    default: find_or_create_tv_season_new
+  editor:
+    x: 200.0
+    "y": 1000.0
+- id: find_or_create_tv_season_existing
+  name: Find or Create Season (Existing Show)
+  type: find_or_create_by
+  args:
+    table: TvSeason
+    find_by:
+      tv_show_id: "${find_tv_show_by_tmdb.id}"
+      season_number: "${parse_tv_filename.season}"
+  next:
+    default: check_episode_by_number
+  editor:
+    x: -200.0
+    "y": 1000.0
+- id: find_or_create_tv_season_new
+  name: Find or Create Season (New Show)
+  type: find_or_create_by
+  args:
+    table: TvSeason
+    find_by:
+      tv_show_id: "${create_tv_show.id}"
+      season_number: "${parse_tv_filename.season}"
+  next:
+    default: fetch_episode_metadata_new
+  editor:
+    x: 200.0
+    "y": 1200.0
+- id: check_episode_by_number
+  name: Check if Episode Exists by Number
+  type: find_by
+  args:
+    table: TvEpisode
+    key: tv_season_id
+    value: "${find_or_create_tv_season_existing.id}"
+    where:
+      episode_number: "${parse_tv_filename.episode}"
+  next:
+    default: update_episode_path
+    not_found: fetch_episode_metadata_existing
+  editor:
+    x: -200.0
+    "y": 1200.0
+- id: update_episode_path
+  name: Update Episode Path (File Moved/Upgraded)
+  type: update
+  args:
+    table: TvEpisode
+    id: "${check_episode_by_number.id}"
+    values:
+      file_path: "${workflow.args.file_info.path}"
+  next:
+    default: done
+  editor:
+    x: -400.0
+    "y": 1400.0
+- id: fetch_episode_metadata_existing
+  name: Fetch Episode Metadata (Existing Show)
+  type: tmdb
+  args:
+    operation: episode_detail
+    tmdb_id: "${tmdb_tv_search.results[0].id}"
+    season_number: "${parse_tv_filename.season}"
+    episode_number: "${parse_tv_filename.episode}"
+  next:
+    default: create_episode_existing
+    not_found: done
+  editor:
+    x: -75.0
+    "y": 1400.0
+- id: fetch_episode_metadata_new
+  name: Fetch Episode Metadata (New Show)
+  type: tmdb
+  args:
+    operation: episode_detail
+    tmdb_id: "${tmdb_tv_search.results[0].id}"
+    season_number: "${parse_tv_filename.season}"
+    episode_number: "${parse_tv_filename.episode}"
+  next:
+    default: create_episode_new
+    not_found: done
+  editor:
+    x: 200.0
+    "y": 1400.0
+- id: create_episode_existing
+  name: Create Episode (Existing Show)
+  type: create
+  args:
+    table: TvEpisode
+    values:
+      tv_season_id: "${find_or_create_tv_season_existing.id}"
+      episode_number: "${parse_tv_filename.episode}"
+      title: "${fetch_episode_metadata_existing.name}"
+      overview: "${fetch_episode_metadata_existing.overview}"
+      air_date: "${fetch_episode_metadata_existing.air_date}"
+      runtime: "${fetch_episode_metadata_existing.runtime}"
+      still_path: "${fetch_episode_metadata_existing.still_path}"
+      file_path: "${subject.path}"
+  next:
+    default: done
+  editor:
+    x: -200.0
+    "y": 1600.0
+- id: create_episode_new
+  name: Create Episode (New Show)
+  type: create
+  args:
+    table: TvEpisode
+    values:
+      tv_season_id: "${find_or_create_tv_season_new.id}"
+      episode_number: "${parse_tv_filename.episode}"
+      title: "${fetch_episode_metadata_new.name}"
+      overview: "${fetch_episode_metadata_new.overview}"
+      air_date: "${fetch_episode_metadata_new.air_date}"
+      runtime: "${fetch_episode_metadata_new.runtime}"
+      still_path: "${fetch_episode_metadata_new.still_path}"
+      file_path: "${workflow.args.file_info.path}"
+  next:
+    default: done
+  editor:
+    x: 200.0
+    "y": 1600.0
+- id: done
+  name: Episode Processing Complete
+  end: true
+  type: noop
+  editor:
+    x: 0.0
+    "y": 1800.0
+  next:
+    default:
