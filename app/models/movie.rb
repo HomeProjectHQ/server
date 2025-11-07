@@ -1,5 +1,6 @@
 class Movie < ApplicationRecord
   include Streamable
+  include RelativePathStorage
   
   # Profile associations
   has_many :profile_movies, dependent: :destroy
@@ -14,13 +15,13 @@ class Movie < ApplicationRecord
   
   # Validations
   validates :title, presence: true
-  validates :file_path, presence: true, uniqueness: true
+  validates :import_file_path, presence: true, uniqueness: true
   
   # Scopes
   scope :by_year, ->(year) { where(year: year) }
   scope :by_genre, ->(genre_name) { joins(:genres).where(genres: { name: genre_name }) }
   scope :recent, -> { order(created_at: :desc) }
-  scope :ready_to_stream, -> { where(status: 'ready').where.not(hls_path: nil) }
+  scope :ready_to_stream, -> { where(status: 'ready').where.not(file_path: nil) }
   scope :popular, -> { order(popularity: :desc) }
   scope :highly_rated, -> { where('vote_average >= ?', 7.0).order(vote_average: :desc) }
   

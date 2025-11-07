@@ -17,7 +17,7 @@ module Streamable
   
   # Status check methods
   def ready?
-    status == "ready" && hls_path.present?
+    status == "ready" && file_path.present?
   end
   
   def needs_processing?
@@ -28,19 +28,19 @@ module Streamable
     status == "processing" || status == "pending"
   end
   
-  # Get the source video file path for processing
+  # Get the source video file path for processing (the original import file)
   def source_video_path
-    file_path
+    import_file_path
   end
   
   # Get parsed qualities array
   def qualities
-    return [] unless hls_qualities.present?
+    return [] unless stream_qualities.present?
     
-    if hls_qualities.is_a?(String)
-      hls_qualities.split(',').map(&:strip)
+    if stream_qualities.is_a?(String)
+      stream_qualities.split(',').map(&:strip)
     else
-      hls_qualities
+      stream_qualities
     end
   end
   

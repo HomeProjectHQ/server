@@ -1,5 +1,6 @@
 class TvEpisode < ApplicationRecord
   include Streamable
+  include RelativePathStorage
   
   belongs_to :tv_season
   has_one :tv_show, through: :tv_season
@@ -9,7 +10,7 @@ class TvEpisode < ApplicationRecord
   
   validates :episode_number, presence: true
   validates :title, presence: true
-  validates :file_path, presence: true, uniqueness: true
+  validates :import_file_path, presence: true, uniqueness: true
   validates :tv_season_id, uniqueness: { scope: :episode_number }
   
   def still_url(size = 'w300')

@@ -7,6 +7,9 @@ Rails.application.routes.draw do
 
   # Auto workflow engine
   mount Auto::Engine, at: "/auto"
+  
+  # Settings (singleton resource - no :id needed)
+  resource :settings, only: [:show, :edit, :update]
 
   # API routes
   namespace :api do

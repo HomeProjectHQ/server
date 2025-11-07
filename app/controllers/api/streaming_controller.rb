@@ -62,7 +62,7 @@ class Api::StreamingController < ApplicationController
     end
     
     # Check if HLS files are ready
-    unless @record.hls_path.present?
+    unless @record.file_path.present?
       render json: { 
         error: "Video not yet processed", 
         status: @record.status || "pending" 
@@ -98,8 +98,8 @@ class Api::StreamingController < ApplicationController
   end
   
   def find_hls_file(relative_path)
-    # Use the record's hls_path
-    base_dir = Pathname.new(@record.hls_path)
+    # Use the record's file_path
+    base_dir = Pathname.new(@record.file_path)
     
     # Construct the full path
     full_path = base_dir.join(relative_path)

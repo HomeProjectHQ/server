@@ -1,5 +1,6 @@
 class Song < ApplicationRecord
   include Streamable
+  include RelativePathStorage
   
   belongs_to :album
   has_one :artist, through: :album
@@ -11,5 +12,5 @@ class Song < ApplicationRecord
   has_many :watch_progresses, as: :watchable, dependent: :destroy
   
   validates :title, presence: true
-  validates :file_path, presence: true, uniqueness: true
+  validates :import_file_path, presence: true, uniqueness: true
 end

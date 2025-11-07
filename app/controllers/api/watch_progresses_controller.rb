@@ -91,7 +91,7 @@ class Api::WatchProgressesController < ApplicationController
         title: watchable.title,
         year: watchable.year,
         poster_url: watchable.poster_url,
-        hls_path: watchable.hls_path
+        file_path: watchable.file_path
       }
     when TvEpisode
       {

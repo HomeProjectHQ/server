@@ -1,141 +1,142 @@
 ---
 id: process_movie
 name: Process Single Movie File
-description: Check if movie exists, parse filename, search TMDB, create or update
+description:
+  Check if movie exists, parse filename, search TMDB, create or update
   movie record
 args:
   file_info: File hash with path, name, type, mime_type
 nodes:
-- id: find_movie_by_path
-  name: Check if Movie Already Exists
-  start: true
-  type: find_by
-  args:
-    table: Movie
-    key: file_path
-    value: "${workflow.args.file_info.path}"
-  next:
-    default: done
-    not_found: parse_movie_filename
-  editor:
-    x: -25.0
-    "y": -450.0
-- id: parse_movie_filename
-  name: Parse Movie Filename
-  type: media_parser
-  args:
-    operation: movie
-    path: "${workflow.args.file_info.path}"
-  next:
-    default: tmdb_movie_search
-  editor:
-    x: 0.0
-    "y": -225.0
-- id: tmdb_movie_search
-  name: TMDB Movie Search
-  type: tmdb
-  args:
-    operation: search_movie
-    title: "${parse_movie_filename.title}"
-    year: "${parse_movie_filename.year}"
-  next:
-    default: tmdb_movie_found
-    not_found: done
-  editor:
-    x: 0.0
-    "y": -25.0
-- id: tmdb_movie_found
-  name: TMDB Movie Found
-  type: conditional
-  args:
-    condition: "${tmdb_movie_search.results}"
-  next:
-    'true': find_movie_by_tmdb
-    'false': done
-  editor:
-    x: -225.0
-    "y": 300.0
-- id: find_movie_by_tmdb
-  name: Check if Movie Exists by TMDB ID
-  type: find_by
-  args:
-    table: Movie
-    key: tmdb_id
-    value: "${tmdb_movie_search.results[0].id}"
-  next:
-    default: update_movie_path
-    not_found: create_movie
-  editor:
-    x: -450.0
-    "y": 625.0
-- id: update_movie_path
-  name: Update Movie Path (File Moved/Upgraded)
-  type: update
-  args:
-    table: Movie
-    id: "${find_movie_by_tmdb.id}"
-    values:
-      file_path: "${workflow.args.file_info.path}"
-      title: "${tmdb_movie_search.results[0].title}"
-      original_title: "${tmdb_movie_search.results[0].original_title}"
-      year: "${tmdb_movie_search.results[0].release_date}"
-      release_date: "${tmdb_movie_search.results[0].release_date}"
-      overview: "${tmdb_movie_search.results[0].overview}"
-      tagline: "${tmdb_movie_search.results[0].tagline}"
-      poster_path: "${tmdb_movie_search.results[0].poster_path}"
-      backdrop_path: "${tmdb_movie_search.results[0].backdrop_path}"
-      runtime: "${tmdb_movie_search.results[0].runtime}"
-      rating: "${tmdb_movie_search.results[0].vote_average}"
-      vote_average: "${tmdb_movie_search.results[0].vote_average}"
-      vote_count: "${tmdb_movie_search.results[0].vote_count}"
-      popularity: "${tmdb_movie_search.results[0].popularity}"
-      imdb_id: "${tmdb_movie_search.results[0].imdb_id}"
-      original_language: "${tmdb_movie_search.results[0].original_language}"
-      budget: "${tmdb_movie_search.results[0].budget}"
-      revenue: "${tmdb_movie_search.results[0].revenue}"
-      homepage: "${tmdb_movie_search.results[0].homepage}"
-  next:
-    default: done
-  editor:
-    x: -575.0
-    "y": 950.0
-- id: create_movie
-  name: Create New Movie
-  type: create
-  args:
-    table: Movie
-    values:
-      title: "${tmdb_movie_search.results[0].title}"
-      original_title: "${tmdb_movie_search.results[0].original_title}"
-      tmdb_id: "${tmdb_movie_search.results[0].id}"
-      year: "${tmdb_movie_search.results[0].release_date}"
-      release_date: "${tmdb_movie_search.results[0].release_date}"
-      overview: "${tmdb_movie_search.results[0].overview}"
-      tagline: "${tmdb_movie_search.results[0].tagline}"
-      poster_path: "${tmdb_movie_search.results[0].poster_path}"
-      backdrop_path: "${tmdb_movie_search.results[0].backdrop_path}"
-      runtime: "${tmdb_movie_search.results[0].runtime}"
-      rating: "${tmdb_movie_search.results[0].vote_average}"
-      vote_average: "${tmdb_movie_search.results[0].vote_average}"
-      vote_count: "${tmdb_movie_search.results[0].vote_count}"
-      popularity: "${tmdb_movie_search.results[0].popularity}"
-      imdb_id: "${tmdb_movie_search.results[0].imdb_id}"
-      original_language: "${tmdb_movie_search.results[0].original_language}"
-      budget: "${tmdb_movie_search.results[0].budget}"
-      revenue: "${tmdb_movie_search.results[0].revenue}"
-      homepage: "${tmdb_movie_search.results[0].homepage}"
-      file_path: "${workflow.args.file_info.path}"
-  next:
-    default: done
-  editor:
-    x: -300.0
-    "y": 950.0
-- id: done
-  name: Movie Processing Complete
-  end: true
-  type: noop
-  editor:
-    x: -75.0
-    "y": 1325.0
-  next:
-    default:
+  - id: find_movie_by_path
+    name: Check if Movie Already Exists
+    start: true
+    type: find_by
+    args:
+      table: Movie
+      key: import_file_path
+      value: "${workflow.args.file_info.path}"
+    next:
+      default: done
+      not_found: parse_movie_filename
+    editor:
+      x: -25.0
+      "y": -450.0
+  - id: parse_movie_filename
+    name: Parse Movie Filename
+    type: media_parser
+    args:
+      operation: movie
+      path: "${workflow.args.file_info.path}"
+    next:
+      default: tmdb_movie_search
+    editor:
+      x: 0.0
+      "y": -225.0
+  - id: tmdb_movie_search
+    name: TMDB Movie Search
+    type: tmdb
+    args:
+      operation: search_movie
+      title: "${parse_movie_filename.title}"
+      year: "${parse_movie_filename.year}"
+    next:
+      default: tmdb_movie_found
+      not_found: done
+    editor:
+      x: 0.0
+      "y": -25.0
+  - id: tmdb_movie_found
+    name: TMDB Movie Found
+    type: conditional
+    args:
+      condition: "${tmdb_movie_search.results}"
+    next:
+      "true": find_movie_by_tmdb
+      "false": done
+    editor:
+      x: -225.0
+      "y": 300.0
+  - id: find_movie_by_tmdb
+    name: Check if Movie Exists by TMDB ID
+    type: find_by
+    args:
+      table: Movie
+      key: tmdb_id
+      value: "${tmdb_movie_search.results[0].id}"
+    next:
+      default: update_movie_path
+      not_found: create_movie
+    editor:
+      x: -450.0
+      "y": 625.0
+  - id: update_movie_path
+    name: Update Movie Path (File Moved/Upgraded)
+    type: update
+    args:
+      table: Movie
+      id: "${find_movie_by_tmdb.id}"
+      values:
+        import_file_path: "${workflow.args.file_info.path}"
+        title: "${tmdb_movie_search.results[0].title}"
+        original_title: "${tmdb_movie_search.results[0].original_title}"
+        year: "${tmdb_movie_search.results[0].release_date}"
+        release_date: "${tmdb_movie_search.results[0].release_date}"
+        overview: "${tmdb_movie_search.results[0].overview}"
+        tagline: "${tmdb_movie_search.results[0].tagline}"
+        poster_path: "${tmdb_movie_search.results[0].poster_path}"
+        backdrop_path: "${tmdb_movie_search.results[0].backdrop_path}"
+        runtime: "${tmdb_movie_search.results[0].runtime}"
+        rating: "${tmdb_movie_search.results[0].vote_average}"
+        vote_average: "${tmdb_movie_search.results[0].vote_average}"
+        vote_count: "${tmdb_movie_search.results[0].vote_count}"
+        popularity: "${tmdb_movie_search.results[0].popularity}"
+        imdb_id: "${tmdb_movie_search.results[0].imdb_id}"
+        original_language: "${tmdb_movie_search.results[0].original_language}"
+        budget: "${tmdb_movie_search.results[0].budget}"
+        revenue: "${tmdb_movie_search.results[0].revenue}"
+        homepage: "${tmdb_movie_search.results[0].homepage}"
+    next:
+      default: done
+    editor:
+      x: -575.0
+      "y": 950.0
+  - id: create_movie
+    name: Create New Movie
+    type: create
+    args:
+      table: Movie
+      values:
+        title: "${tmdb_movie_search.results[0].title}"
+        original_title: "${tmdb_movie_search.results[0].original_title}"
+        tmdb_id: "${tmdb_movie_search.results[0].id}"
+        year: "${tmdb_movie_search.results[0].release_date}"
+        release_date: "${tmdb_movie_search.results[0].release_date}"
+        overview: "${tmdb_movie_search.results[0].overview}"
+        tagline: "${tmdb_movie_search.results[0].tagline}"
+        poster_path: "${tmdb_movie_search.results[0].poster_path}"
+        backdrop_path: "${tmdb_movie_search.results[0].backdrop_path}"
+        runtime: "${tmdb_movie_search.results[0].runtime}"
+        rating: "${tmdb_movie_search.results[0].vote_average}"
+        vote_average: "${tmdb_movie_search.results[0].vote_average}"
+        vote_count: "${tmdb_movie_search.results[0].vote_count}"
+        popularity: "${tmdb_movie_search.results[0].popularity}"
+        imdb_id: "${tmdb_movie_search.results[0].imdb_id}"
+        original_language: "${tmdb_movie_search.results[0].original_language}"
+        budget: "${tmdb_movie_search.results[0].budget}"
+        revenue: "${tmdb_movie_search.results[0].revenue}"
+        homepage: "${tmdb_movie_search.results[0].homepage}"
+        import_file_path: "${workflow.args.file_info.path}"
+    next:
+      default: done
+    editor:
+      x: -300.0
+      "y": 950.0
+  - id: done
+    name: Movie Processing Complete
+    end: true
+    type: noop
+    editor:
+      x: -75.0
+      "y": 1325.0
+    next:
+      default:

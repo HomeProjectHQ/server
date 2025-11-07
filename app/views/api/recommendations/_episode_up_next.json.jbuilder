@@ -10,10 +10,10 @@ json.tv_show do
   json.poster_url episode.tv_show.poster_url
 end
 
-json.hls do
+json.stream do
   json.status episode.status
-  json.available_qualities episode.hls_qualities&.split(',') || []
-  json.duration episode.hls_duration
-  json.stream_url episode.hls_path.present? ? stream_api_tv_episode_path(episode) : nil
+  json.available_qualities episode.stream_qualities&.split(',') || []
+  json.duration episode.stream_duration
+  json.stream_url episode.file_path.present? ? stream_api_tv_episode_path(episode) : nil
 end
 

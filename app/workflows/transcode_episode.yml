@@ -4,12 +4,26 @@ subject_type: TvEpisode
 description: Transcode an episode to HLS format with multiple quality variants
 
 nodes:
+  - id: check_transcode_exists
+    name: Check if HLS Master playlist Exists
+    start: true
+    type: file_system_job
+    args:
+      exists: "${subject.file_path.present?}"
+      path: "${subject.file_path}"
+    next:
+      "true": workflow_complete
+      "false": set_processing
+    editor:
+      x: 0
+      "y": 800
+
   - id: check_hls_exists
     name: Check if HLS Already Exists
     start: true
     type: conditional
     args:
-      condition: "${subject.hls_path.present?}"
+      condition: "${subject.file_path.present?}"
     next:
       "true": workflow_complete
       "false": set_processing
@@ -35,9 +49,9 @@ nodes:
     name: Transcode 1080p Variant
     type: ffmpeg
     args:
-      input_file: "${subject.file_path}"
+      input_file: "${subject.import_file_path}"
       output_dir: >-
-        /Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/1080p
+        ${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/1080p
       variant_name: 1080p
       width: 1920
       height: 1080
@@ -68,9 +82,9 @@ nodes:
     name: Transcode 720p Variant
     type: ffmpeg
     args:
-      input_file: "${subject.file_path}"
+      input_file: "${subject.import_file_path}"
       output_dir: >-
-        /Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/720p
+        ${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/720p
       variant_name: 720p
       width: 1280
       height: 720
@@ -104,7 +118,7 @@ nodes:
     args:
       operation: write
       overwrite: true
-      path: "/Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/index.m3u8"
+      path: "${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/index.m3u8"
       name: master_playlist
       contents: >
         #EXTM3U
@@ -127,9 +141,9 @@ nodes:
       id: "${subject.id}"
       values:
         status: ready
-        hls_path: >-
-          /Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}
-        hls_qualities: "1080p,720p"
+        file_path: >-
+          TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}
+        stream_qualities: "1080p,720p"
     next:
       default: workflow_complete
     editor:

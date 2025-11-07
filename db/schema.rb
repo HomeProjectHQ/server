@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_07_192122) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_07_200200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "ltree"
   enable_extension "pg_catalog.plpgsql"
@@ -180,11 +180,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_192122) do
     t.string "backdrop_path"
     t.integer "runtime"
     t.decimal "rating"
-    t.string "file_path"
+    t.string "import_file_path"
     t.bigint "file_size"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "hls_path"
+    t.string "file_path"
     t.string "status"
     t.integer "duration"
     t.string "imdb_id"
@@ -198,6 +198,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_192122) do
     t.bigint "budget"
     t.bigint "revenue"
     t.string "homepage"
+    t.integer "stream_duration"
+    t.text "stream_qualities"
     t.index ["tmdb_id"], name: "index_movies_on_tmdb_id", unique: true
   end
 
@@ -252,6 +254,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_192122) do
     t.datetime "updated_at", null: false
     t.string "color"
     t.text "prompt"
+  end
+
+  create_table "settings", force: :cascade do |t|
+    t.string "root_path", default: "/Users/Shared/nfs/media/Home", null: false
+    t.integer "max_transcode_quality", default: 1080
+    t.string "transcode_codec", default: "hevc_videotoolbox"
+    t.boolean "enable_auto_scan", default: true
+    t.integer "scan_interval_minutes", default: 60
+    t.boolean "enable_transcoding", default: true
+    t.boolean "enable_artwork_downloads", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.check_constraint "id = 1", name: "settings_singleton_check"
   end
 
   create_table "solid_queue_blocked_executions", force: :cascade do |t|
@@ -380,15 +395,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_192122) do
     t.bigint "album_id", null: false
     t.integer "track_number"
     t.integer "duration"
-    t.string "file_path"
+    t.string "import_file_path"
     t.bigint "file_size"
     t.string "mbid"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "status"
-    t.string "hls_path"
-    t.integer "hls_duration"
-    t.text "hls_qualities"
+    t.string "file_path"
+    t.integer "stream_duration"
+    t.text "stream_qualities"
     t.index ["album_id"], name: "index_songs_on_album_id"
   end
 
@@ -400,14 +415,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_192122) do
     t.date "air_date"
     t.integer "runtime"
     t.string "still_path"
-    t.string "file_path"
+    t.string "import_file_path"
     t.bigint "file_size"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "status"
-    t.string "hls_path"
-    t.integer "hls_duration"
-    t.text "hls_qualities"
+    t.string "file_path"
+    t.integer "stream_duration"
+    t.text "stream_qualities"
     t.index ["tv_season_id"], name: "index_tv_episodes_on_tv_season_id"
   end
 
