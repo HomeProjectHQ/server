@@ -29,7 +29,7 @@ nodes:
   next:
     default: tmdb_tv_search
   editor:
-    x: 0.0
+    x: 25.0
     "y": 200.0
 - id: tmdb_tv_search
   name: TMDB TV Show Search
@@ -41,7 +41,7 @@ nodes:
     default: tmdb_tv_found
     not_found: done
   editor:
-    x: 0.0
+    x: 25.0
     "y": 400.0
 - id: tmdb_tv_found
   name: TMDB TV Show Found
@@ -193,7 +193,7 @@ nodes:
       air_date: "${fetch_episode_metadata_existing.air_date}"
       runtime: "${fetch_episode_metadata_existing.runtime}"
       still_path: "${fetch_episode_metadata_existing.still_path}"
-      file_path: "${subject.path}"
+      file_path: "${workflow.args.file_info.path}"
   next:
     default: done
   editor:

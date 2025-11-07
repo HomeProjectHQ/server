@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_06_000003) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_07_192122) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "ltree"
   enable_extension "pg_catalog.plpgsql"
@@ -76,24 +76,21 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000003) do
   create_table "auto_nodes", force: :cascade do |t|
     t.bigint "workflow_id", null: false
     t.string "node_id", null: false
-    t.integer "node_index", null: false
-    t.integer "status", default: 0, null: false
     t.string "selection", default: "0"
-    t.bigint "job_id"
-    t.string "job_class"
     t.text "error_details"
-    t.datetime "started_at"
-    t.datetime "completed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.json "data"
     t.boolean "end", default: false, null: false
-    t.integer "depth", default: 0
+    t.string "active_job_id"
+    t.bigint "parent_id"
+    t.bigint "child_id"
+    t.index ["active_job_id"], name: "index_auto_nodes_on_active_job_id"
+    t.index ["child_id"], name: "index_auto_nodes_on_child_id"
     t.index ["end"], name: "index_auto_nodes_on_end"
-    t.index ["job_id"], name: "index_auto_nodes_on_job_id"
     t.index ["node_id"], name: "index_auto_nodes_on_node_id"
-    t.index ["status"], name: "index_auto_nodes_on_status"
-    t.index ["workflow_id", "node_index"], name: "index_auto_nodes_on_workflow_id_and_node_index", unique: true
+    t.index ["parent_id"], name: "index_auto_nodes_on_parent_id"
+    t.index ["workflow_id", "child_id"], name: "index_auto_nodes_on_workflow_id_and_child_id"
     t.index ["workflow_id"], name: "index_auto_nodes_on_workflow_id"
   end
 
@@ -486,6 +483,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_06_000003) do
   add_foreign_key "albums", "artists"
   add_foreign_key "auto_node_edges", "auto_nodes", column: "from_node_id"
   add_foreign_key "auto_node_edges", "auto_nodes", column: "to_node_id"
+  add_foreign_key "auto_nodes", "auto_nodes", column: "child_id", on_delete: :nullify
+  add_foreign_key "auto_nodes", "auto_nodes", column: "parent_id", on_delete: :nullify
   add_foreign_key "auto_nodes", "auto_workflows", column: "workflow_id"
   add_foreign_key "featured_items", "profiles"
   add_foreign_key "movie_genres", "genres"

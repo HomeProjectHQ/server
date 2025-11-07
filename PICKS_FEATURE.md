@@ -18,19 +18,20 @@ Instead of showing generic "trending" or "popular" content, each profile gets **
 ### Example Profile Description
 
 ```
-Kate loves reality TV like Real Housewives and The Bachelor, which she has on 
-in the background while doing laundry or dishes (usually weekday mornings around 
-10am). She's also obsessed with Halloween - from late September through November, 
-she gravitates toward spooky content like Practical Magic, Hocus Pocus, and true 
-crime documentaries. Friday nights are sacred: she and her husband watch Dateline 
-NBC together at 11pm without fail. She avoids anything too intense or violent 
-unless it's true crime. Comfort shows like The Office get heavy rotation when 
+Kate loves reality TV like Real Housewives and The Bachelor, which she has on
+in the background while doing laundry or dishes (usually weekday mornings around
+10am). She's also obsessed with Halloween - from late September through November,
+she gravitates toward spooky content like Practical Magic, Hocus Pocus, and true
+crime documentaries. Friday nights are sacred: she and her husband watch Dateline
+NBC together at 11pm without fail. She avoids anything too intense or violent
+unless it's true crime. Comfort shows like The Office get heavy rotation when
 she needs to wind down.
 ```
 
 ### What Kate Gets
 
 **Tuesday 10am:**
+
 ```json
 {
   "caption": "Perfect background while doing morning tasks",
@@ -42,6 +43,7 @@ she needs to wind down.
 ```
 
 **October 15th, 8pm:**
+
 ```json
 {
   "caption": "Getting into Halloween spirit 🎃",
@@ -53,6 +55,7 @@ she needs to wind down.
 ```
 
 **Friday 11pm:**
+
 ```json
 {
   "caption": "New episode of your Friday night tradition",
@@ -68,6 +71,7 @@ she needs to wind down.
 ### 1. Database Schema
 
 **Migration:** `db/migrate/20251106000001_create_picks.rb`
+
 ```ruby
 create_table :picks do |t|
   t.references :profile
@@ -81,6 +85,7 @@ end
 ```
 
 **Migration:** `db/migrate/20251106000002_add_description_to_profiles.rb`
+
 ```ruby
 add_column :profiles, :description, :text
 ```
@@ -93,9 +98,9 @@ add_column :profiles, :description, :text
 class Pick < ApplicationRecord
   belongs_to :profile
   belongs_to :pickable, polymorphic: true
-  
+
   scope :current, -> { where('expires_at IS NULL OR expires_at > ?', Time.current) }
-  
+
   def self.current_for(profile)
     for_profile(profile).current.first
   end
@@ -122,6 +127,7 @@ struct PickRecommendation: Codable {
 **File:** `app/workflows/generate_pick.yml`
 
 An Auto workflow that:
+
 1. Loads the profile and validates it has a description
 2. Fetches available media library (movies, shows, episodes)
 3. Gets recent watch history
@@ -133,6 +139,7 @@ An Auto workflow that:
 **File:** `app/controllers/api/picks_controller.rb`
 
 Endpoints:
+
 - `GET /api/profiles/:id/pick` - Get current pick
 - `POST /api/profiles/:id/pick/generate` - Generate new pick
 - `DELETE /api/profiles/:id/pick` - Expire current pick
@@ -141,6 +148,7 @@ Endpoints:
 ### 6. Jbuilder Views
 
 **Files:**
+
 - `app/views/api/picks/_pick.json.jbuilder`
 - `app/views/api/picks/show.json.jbuilder`
 - `app/views/api/picks/index.json.jbuilder`
@@ -148,6 +156,7 @@ Endpoints:
 ### 7. Routes
 
 Added to `config/routes.rb`:
+
 ```ruby
 resources :profiles do
   member do
@@ -176,11 +185,11 @@ bin/rails console
 ```ruby
 profile = Profile.first
 profile.update(description: <<~DESC)
-  Kate loves reality TV like Real Housewives and The Bachelor, which she has on 
-  in the background while doing laundry or dishes (usually weekday mornings around 
-  10am). She's also obsessed with Halloween - from late September through November, 
-  she gravitates toward spooky content like Practical Magic, Hocus Pocus, and true 
-  crime documentaries. Friday nights are sacred: she and her husband watch Dateline 
+  Kate loves reality TV like Real Housewives and The Bachelor, which she has on
+  in the background while doing laundry or dishes (usually weekday mornings around
+  10am). She's also obsessed with Halloween - from late September through November,
+  she gravitates toward spooky content like Practical Magic, Hocus Pocus, and true
+  crime documentaries. Friday nights are sacred: she and her husband watch Dateline
   NBC together at 11pm without fail.
 DESC
 ```
@@ -188,11 +197,13 @@ DESC
 ### 3. Generate a Pick
 
 **Via API:**
+
 ```bash
 curl -X POST http://localhost:3000/api/profiles/1/pick/generate
 ```
 
 **Via Rails Console:**
+
 ```ruby
 workflow = Auto::Workflow.create!(
   workflow_id: 'generate_pick',
@@ -209,11 +220,13 @@ Pick.current_for(Profile.first)
 ### 4. View the Pick
 
 **Via API:**
+
 ```bash
 curl http://localhost:3000/api/profiles/1/pick
 ```
 
 **Response:**
+
 ```json
 {
   "id": 1,
@@ -243,6 +256,7 @@ curl http://localhost:3000/api/profiles/1/pick
 ### Why Polymorphic Association?
 
 The LLM can recommend:
+
 - **Movie** - A single film
 - **TvEpisode** - Specific episode (great for series you're watching)
 - **TvShow** - Entire series (suggesting to start/binge it)
@@ -251,6 +265,7 @@ The LLM can recommend:
 ### Why Store the Pick?
 
 Instead of generating on-the-fly:
+
 1. **Performance** - LLM calls take 5-10 seconds
 2. **Consistency** - Same pick shown across app refreshes
 3. **Analytics** - Track what was recommended and when
@@ -260,6 +275,7 @@ Instead of generating on-the-fly:
 ### Why Expire Instead of Delete?
 
 Soft-delete pattern:
+
 - Track pick history
 - Analytics on what worked/didn't
 - User can see "You dismissed this yesterday"
@@ -271,16 +287,15 @@ Soft-delete pattern:
 ```javascript
 async function loadHero(profileId) {
   const response = await fetch(`/api/profiles/${profileId}/pick`);
-  
+
   if (response.status === 404) {
     // No pick exists, generate one
-    const newPick = await fetch(
-      `/api/profiles/${profileId}/pick/generate`,
-      { method: 'POST' }
-    );
+    const newPick = await fetch(`/api/profiles/${profileId}/pick/generate`, {
+      method: "POST",
+    });
     return await newPick.json();
   }
-  
+
   return await response.json();
 }
 
@@ -288,7 +303,7 @@ const hero = await loadHero(profile.id);
 displayHero({
   title: hero.media.title,
   caption: hero.caption,
-  backdrop: hero.media.backdrop_path
+  backdrop: hero.media.backdrop_path,
 });
 ```
 
@@ -322,6 +337,7 @@ enum MediaType: String, Codable {
 ```
 
 The LLM can then recommend:
+
 ```json
 {
   "type": "Collection",
@@ -343,6 +359,7 @@ Use the same profile system to recommend content to buy:
 ### Phase 4: Multi-Domain
 
 Extend to other media:
+
 - Music picks (albums, playlists)
 - Reading picks (books, articles)
 - Podcast picks
@@ -356,7 +373,7 @@ Extend to other media:
 test "current scope only returns non-expired picks" do
   current_pick = picks(:current)
   expired_pick = picks(:expired)
-  
+
   assert_includes Pick.current, current_pick
   refute_includes Pick.current, expired_pick
 end
@@ -369,10 +386,10 @@ end
 test "generate creates new pick via workflow" do
   profile = profiles(:kate)
   profile.update(description: "Loves reality TV...")
-  
+
   post generate_api_profile_pick_url(profile)
   assert_response :created
-  
+
   pick = Pick.current_for(profile)
   assert_not_nil pick
   assert_not_nil pick.pickable
@@ -441,4 +458,3 @@ docs/
 **Built with:** Rails 8, Apple Foundation Models, Auto Workflows  
 **Date:** November 6, 2025  
 **Status:** Ready for migration & testing
-
