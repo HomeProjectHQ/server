@@ -1,4 +1,6 @@
 class Api::TvEpisodesController < ApplicationController
+  include StreamableController
+  
   # GET /api/tv_episodes/:id
   def show
     @episode = TvEpisode.find(params[:id])
@@ -30,6 +32,25 @@ class Api::TvEpisodesController < ApplicationController
         stream_url: @episode.file_path.present? ? stream_api_tv_episode_path(@episode) : nil
       }
     }
+  rescue ActiveRecord::RecordNotFound
+    render json: { error: "Episode not found" }, status: :not_found
+  end
+  
+  # Streaming actions inherited from StreamableController:
+  # GET /api/tv_episodes/:id/stream
+  # GET /api/tv_episodes/:id/stream/*segment_path
+  
+  private
+  
+  def set_streamable_record
+    @streamable = TvEpisode.find(params[:id])
+    
+    unless @streamable.file_path.present?
+      render json: { 
+        error: "Episode not yet processed", 
+        status: @streamable.status || "pending" 
+      }, status: :not_found
+    end
   rescue ActiveRecord::RecordNotFound
     render json: { error: "Episode not found" }, status: :not_found
   end

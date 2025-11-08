@@ -54,8 +54,8 @@ nodes:
       width: 1920
       height: 1080
       video_bitrate: 12M
-      audio_bitrate: 256k
-      bandwidth: 12000000
+      audio_bitrate: 768k
+      bandwidth: 12768000
       codec_video: hevc_videotoolbox
       codec_audio: aac
       video_tag: hvc1
@@ -87,8 +87,8 @@ nodes:
       width: 1280
       height: 720
       video_bitrate: 5M
-      audio_bitrate: 128k
-      bandwidth: 5000000
+      audio_bitrate: 768k
+      bandwidth: 5768000
       codec_video: hevc_videotoolbox
       codec_audio: aac
       video_tag: hvc1
@@ -97,7 +97,6 @@ nodes:
         scale=1280:720:force_original_aspect_ratio=decrease,format=yuv420p,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709
       force_key_frames: "expr:gte(t,n_forced*6)"
       audio_sample_rate: 48000
-      audio_channels: 2
       hls_time: 6
       hls_playlist_type: vod
       hls_list_size: 0
@@ -118,12 +117,12 @@ nodes:
       overwrite: true
       path: "${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/index.m3u8"
       name: master_playlist
-      contents: >
+      contents: |
         #EXTM3U
         #EXT-X-VERSION:6
-        #EXT-X-STREAM-INF:BANDWIDTH=12000000,RESOLUTION=1920x1080,CODECS="hvc1.1.c.L120.90,mp4a.40.2"
+        #EXT-X-STREAM-INF:BANDWIDTH=12768000,RESOLUTION=1920x1080
         1080p/index.m3u8
-        #EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1280x720,CODECS="hvc1.1.c.L93.90,mp4a.40.2"
+        #EXT-X-STREAM-INF:BANDWIDTH=5768000,RESOLUTION=1280x720
         720p/index.m3u8
     next:
       default: mark_ready

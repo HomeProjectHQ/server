@@ -188,12 +188,14 @@ struct StreamInfo: Codable {  // Renamed from HLSInfo
 ## What Hasn't Changed
 
 ### ✅ These remain the same:
-- Stream URLs: `/api/movies/:id/stream` and `/api/tv_episodes/:id/stream`
+- **Stream URLs**: `/api/movies/:id/stream` and `/api/tv_episodes/:id/stream` (no change to URL structure)
 - HLS playlist format and structure
 - Quality variant naming (`1080p`, `720p`, etc.)
 - Status values (`pending`, `processing`, `ready`, `failed`)
 - Authentication and authorization
 - HTTP methods and status codes
+
+**Note:** While the URLs haven't changed, streaming is now handled directly by the `movies` and `tv_episodes` controllers instead of a separate `streaming` controller. This is an internal refactor and shouldn't affect clients.
 
 ---
 

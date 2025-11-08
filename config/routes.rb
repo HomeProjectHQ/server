@@ -54,8 +54,8 @@ Rails.application.routes.draw do
     # Library endpoints
     resources :movies, only: [:index, :show] do
       member do
-        get 'stream', to: 'streaming#stream', as: 'stream'
-        get 'stream/*segment_path', to: 'streaming#segment', as: 'segment', format: false
+        get 'stream', to: 'movies#stream', as: 'stream'
+        get 'stream/*segment_path', to: 'movies#segment', as: 'segment', format: false
       end
     end
     
@@ -69,8 +69,8 @@ Rails.application.routes.draw do
     # TV Episode endpoints
     resources :tv_episodes, only: [:show] do
       member do
-        get 'stream', to: 'streaming#stream', as: 'stream'
-        get 'stream/*segment_path', to: 'streaming#segment', as: 'segment', format: false
+        get 'stream', to: 'tv_episodes#stream', as: 'stream'
+        get 'stream/*segment_path', to: 'tv_episodes#segment', as: 'segment', format: false
       end
     end
     
@@ -82,12 +82,13 @@ Rails.application.routes.draw do
     end
     
     # Song streaming endpoints (for future audio streaming)
-    resources :songs, only: [] do
-      member do
-        get 'stream', to: 'streaming#stream', as: 'stream'
-        get 'stream/*segment_path', to: 'streaming#segment', as: 'segment', format: false
-      end
-    end
+    # TODO: Implement when audio streaming is ready
+    # resources :songs, only: [] do
+    #   member do
+    #     get 'stream', to: 'songs#stream'
+    #     get 'stream/*segment_path', to: 'songs#segment', format: false
+    #   end
+    # end
     
     # Admin routes
     namespace :admin do
