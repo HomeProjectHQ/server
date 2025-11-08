@@ -1,156 +1,195 @@
+---
 id: transcode_episode
 name: Transcode Episode to HLS
 subject_type: TvEpisode
 description: Transcode an episode to HLS format with multiple quality variants
-
 nodes:
-  - id: existence_check
-    name: Check if HLS Master playlist Exists
-    start: true
-    type: file_system
-    args:
-      exists: "${subject.file_path.present?}"
-      path: "${subject.file_path}"
-    next:
-      default: already_exists
-    editor:
-      x: 0
-      "y": 800
+- id: existence_check
+  name: Check if HLS Master playlist Exists
+  start: true
+  type: file_system
+  args:
+    exists: "${subject.file_path.present?}"
+    path: "${subject.file_path}"
+  next:
+    default: already_exists
+  editor:
+    x: 0
+    "y": 800
+- id: already_exists
+  name: Check if HLS Already Exists
+  type: conditional
+  args:
+    condition: "${existence_check.exists}"
+  next:
+    'true': workflow_complete
+    'false': set_processing
+  editor:
+    x: 0
+    "y": 800
+- id: set_processing
+  name: Set Episode Processing Status
+  type: update
+  args:
+    table: TvEpisode
+    id: "${subject.id}"
+    values:
+      status: processing
+  next:
+    default: transcode_audio_stereo
+  editor:
+    x: 150.0
+    "y": 1000.0
+- id: transcode_audio_stereo
+  name: Transcode Stereo Audio Track (Required)
+  type: ffmpeg
+  args:
+    input_file: "${subject.import_file_path}"
+    output_dir: "/Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/audio_stereo"
+    variant_name: audio_stereo
+    codec_audio: aac
+    audio_bitrate: 192k
+    audio_channels: 2
+    audio_sample_rate: 48000
+    map_audio_only: true
+    hls_time: 6
+    hls_playlist_type: vod
+    hls_list_size: 0
+    hls_segment_type: fmp4
+    hls_flags: independent_segments
+    hls_fmp4_init_filename: init.mp4
+  next:
+    default: transcode_audio_surround
+  editor:
+    x: 150.0
+    "y": 1200.0
+- id: transcode_audio_surround
+  name: Transcode 5.1 Surround Audio Track
+  type: ffmpeg
+  args:
+    input_file: "${subject.import_file_path}"
+    output_dir: "/Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/audio_surround"
+    variant_name: audio_surround
+    codec_audio: aac
+    audio_bitrate: 320k
+    audio_sample_rate: 48000
+    map_audio_only: true
+    hls_time: 6
+    hls_playlist_type: vod
+    hls_list_size: 0
+    hls_segment_type: fmp4
+    hls_flags: independent_segments
+    hls_fmp4_init_filename: init.mp4
+  next:
+    default: transcode_video_1080p
+  editor:
+    x: 150.0
+    "y": 1375.0
+- id: transcode_video_1080p
+  name: Transcode 1080p Video Only
+  type: ffmpeg
+  args:
+    input_file: "${subject.import_file_path}"
+    output_dir: "/Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/video_1080p"
+    variant_name: video_1080p
+    width: 1920
+    height: 1080
+    video_bitrate: 12M
+    codec_video: hevc_videotoolbox
+    video_tag: hvc1
+    pixel_format: yuv420p
+    map_video_only: true
+    video_filter: scale=1920:1080:force_original_aspect_ratio=decrease,format=yuv420p,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709
+    force_key_frames: expr:gte(t,n_forced*6)
+    hls_time: 6
+    hls_playlist_type: vod
+    hls_list_size: 0
+    hls_segment_type: fmp4
+    hls_flags: independent_segments
+    hls_fmp4_init_filename: init.mp4
+  next:
+    default: transcode_video_720p
+  editor:
+    x: 150.0
+    "y": 1550.0
+- id: transcode_video_720p
+  name: Transcode 720p Video Only
+  type: ffmpeg
+  args:
+    input_file: "${subject.import_file_path}"
+    output_dir: "/Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/video_720p"
+    variant_name: video_720p
+    width: 1280
+    height: 720
+    video_bitrate: 5M
+    codec_video: hevc_videotoolbox
+    video_tag: hvc1
+    pixel_format: yuv420p
+    map_video_only: true
+    video_filter: scale=1280:720:force_original_aspect_ratio=decrease,format=yuv420p,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709
+    force_key_frames: expr:gte(t,n_forced*6)
+    hls_time: 6
+    hls_playlist_type: vod
+    hls_list_size: 0
+    hls_segment_type: fmp4
+    hls_flags: independent_segments
+    hls_fmp4_init_filename: init.mp4
+  next:
+    default: create_master_playlist
+  editor:
+    x: 150.0
+    "y": 1725.0
+- id: create_master_playlist
+  name: Create Master Playlist
+  type: file
+  args:
+    operation: write
+    overwrite: true
+    path: "/Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/index.m3u8"
+    name: master_playlist
+    contents: |
+      #EXTM3U
+      #EXT-X-VERSION:6
 
-  - id: already_exists
-    name: Check if HLS Already Exists
-    type: conditional
-    args:
-      condition: "${existence_check.exists}"
-    next:
-      "true": workflow_complete
-      "false": set_processing
-    editor:
-      x: 0
-      "y": 800
+      # Audio renditions (REQUIRED by Apple spec - Rule 2.3)
+      #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="stereo",NAME="Stereo",DEFAULT=YES,AUTOSELECT=YES,LANGUAGE="en",URI="audio_stereo/index.m3u8"
+      #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="surround",NAME="Surround 5.1",DEFAULT=NO,AUTOSELECT=YES,LANGUAGE="en",CHANNELS="6",URI="audio_surround/index.m3u8"
 
-  - id: set_processing
-    name: Set Episode Processing Status
-    type: update
-    args:
-      table: TvEpisode
-      id: "${subject.id}"
-      values:
-        status: processing
-    next:
-      default: transcode_1080p
-    editor:
-      x: -200
-      "y": 1000
+      # 1080p variants with audio selection
+      #EXT-X-STREAM-INF:BANDWIDTH=12192000,RESOLUTION=1920x1080,AUDIO="stereo"
+      video_1080p/index.m3u8
+      #EXT-X-STREAM-INF:BANDWIDTH=12320000,RESOLUTION=1920x1080,AUDIO="surround"
+      video_1080p/index.m3u8
 
-  - id: transcode_1080p
-    name: Transcode 1080p Variant
-    type: ffmpeg
-    args:
-      input_file: "${subject.import_file_path}"
-      output_dir: >-
-        ${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/1080p
-      variant_name: 1080p
-      width: 1920
-      height: 1080
-      video_bitrate: 12M
-      audio_bitrate: 768k
-      bandwidth: 12768000
-      codec_video: hevc_videotoolbox
-      codec_audio: aac
-      video_tag: hvc1
-      pixel_format: yuv420p
-      video_filter: >-
-        scale=1920:1080:force_original_aspect_ratio=decrease,format=yuv420p,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709
-      force_key_frames: "expr:gte(t,n_forced*6)"
-      audio_sample_rate: 48000
-      hls_time: 6
-      hls_playlist_type: vod
-      hls_list_size: 0
-      hls_segment_type: fmp4
-      hls_flags: independent_segments
-      hls_fmp4_init_filename: init.mp4
-    next:
-      default: transcode_720p
-    editor:
-      x: -200
-      "y": 1200
-
-  - id: transcode_720p
-    name: Transcode 720p Variant
-    type: ffmpeg
-    args:
-      input_file: "${subject.import_file_path}"
-      output_dir: >-
-        ${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/720p
-      variant_name: 720p
-      width: 1280
-      height: 720
-      video_bitrate: 5M
-      audio_bitrate: 768k
-      bandwidth: 5768000
-      codec_video: hevc_videotoolbox
-      codec_audio: aac
-      video_tag: hvc1
-      pixel_format: yuv420p
-      video_filter: >-
-        scale=1280:720:force_original_aspect_ratio=decrease,format=yuv420p,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709
-      force_key_frames: "expr:gte(t,n_forced*6)"
-      audio_sample_rate: 48000
-      hls_time: 6
-      hls_playlist_type: vod
-      hls_list_size: 0
-      hls_segment_type: fmp4
-      hls_flags: independent_segments
-      hls_fmp4_init_filename: init.mp4
-    next:
-      default: create_master_playlist
-    editor:
-      x: -200
-      "y": 1400
-
-  - id: create_master_playlist
-    name: Create Master Playlist
-    type: file
-    args:
-      operation: write
-      overwrite: true
-      path: "${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/index.m3u8"
-      name: master_playlist
-      contents: |
-        #EXTM3U
-        #EXT-X-VERSION:6
-        #EXT-X-STREAM-INF:BANDWIDTH=12768000,RESOLUTION=1920x1080
-        1080p/index.m3u8
-        #EXT-X-STREAM-INF:BANDWIDTH=5768000,RESOLUTION=1280x720
-        720p/index.m3u8
-    next:
-      default: mark_ready
-    editor:
-      x: -200
-      "y": 1600
-
-  - id: mark_ready
-    name: Mark Episode as Ready
-    type: update
-    args:
-      table: TvEpisode
-      id: "${subject.id}"
-      values:
-        status: ready
-        file_path: >-
-          TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}
-        stream_qualities: "1080p,720p"
-    next:
-      default: workflow_complete
-    editor:
-      x: -250
-      "y": 2000
-
-  - id: workflow_complete
-    name: Workflow Complete
-    end: true
-    type: noop
-    editor:
-      x: 0
-      "y": 2600
+      # 720p variants with audio selection
+      #EXT-X-STREAM-INF:BANDWIDTH=5192000,RESOLUTION=1280x720,AUDIO="stereo"
+      video_720p/index.m3u8
+      #EXT-X-STREAM-INF:BANDWIDTH=5320000,RESOLUTION=1280x720,AUDIO="surround"
+      video_720p/index.m3u8
+  next:
+    default: mark_ready
+  editor:
+    x: 150.0
+    "y": 1900.0
+- id: mark_ready
+  name: Mark Episode as Ready
+  type: update
+  args:
+    table: TvEpisode
+    id: "${subject.id}"
+    values:
+      status: ready
+      file_path: TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}
+      stream_qualities: 1080p,720p,stereo,surround
+  next:
+    default: workflow_complete
+  editor:
+    x: 150.0
+    "y": 2100.0
+- id: workflow_complete
+  name: Workflow Complete
+  end: true
+  type: noop
+  editor:
+    x: 0
+    "y": 2600
