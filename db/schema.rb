@@ -266,7 +266,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_200200) do
     t.boolean "enable_artwork_downloads", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.check_constraint "id = 1", name: "settings_singleton_check"
+    t.integer "singleton_guard", default: 0, null: false
+    t.index ["singleton_guard"], name: "index_settings_on_singleton_guard", unique: true
   end
 
   create_table "solid_queue_blocked_executions", force: :cascade do |t|

@@ -16,13 +16,21 @@ class Setting < ApplicationRecord
   # Delegate class methods to the instance for easy access
   # Setting.root_path instead of Setting.instance.root_path
   def self.method_missing(method, *args)
-    instance.public_send(method, *args)
+    if instance_variable_defined?(:@_instance_cache)
+      cached = instance_variable_get(:@_instance_cache)
+      return cached.public_send(method, *args) if cached.respond_to?(method)
+    end
+    
+    setting = instance
+    instance_variable_set(:@_instance_cache, setting)
+    setting.public_send(method, *args)
   rescue NoMethodError
     super
   end
   
   def self.respond_to_missing?(method, include_private = false)
-    instance.respond_to?(method, include_private) || super
+    # Only check column names to avoid infinite recursion
+    column_names.include?(method.to_s.delete_suffix('=').delete_suffix('?')) || super
   end
 end
 

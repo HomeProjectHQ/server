@@ -91,6 +91,9 @@ Rails.application.routes.draw do
     
     # Admin routes
     namespace :admin do
+      # System Settings (singleton resource)
+      resource :settings, only: [:show, :update]
+      
       # Media Folder management
       resources :media_folders do
         collection do

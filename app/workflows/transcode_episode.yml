@@ -4,26 +4,24 @@ subject_type: TvEpisode
 description: Transcode an episode to HLS format with multiple quality variants
 
 nodes:
-  - id: check_transcode_exists
+  - id: existence_check
     name: Check if HLS Master playlist Exists
     start: true
-    type: file_system_job
+    type: file_system
     args:
       exists: "${subject.file_path.present?}"
       path: "${subject.file_path}"
     next:
-      "true": workflow_complete
-      "false": set_processing
+      default: already_exists
     editor:
       x: 0
       "y": 800
 
-  - id: check_hls_exists
+  - id: already_exists
     name: Check if HLS Already Exists
-    start: true
     type: conditional
     args:
-      condition: "${subject.file_path.present?}"
+      condition: "${existence_check.exists}"
     next:
       "true": workflow_complete
       "false": set_processing
