@@ -45,7 +45,7 @@ nodes:
     type: ffmpeg
     args:
       input_file: "${subject.import_file_path}"
-      output_dir: "/Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/audio_stereo"
+      output_dir: "${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/audio_stereo"
       flags:
         map: "0:a"
         vn: true
@@ -71,7 +71,7 @@ nodes:
     type: ffmpeg
     args:
       input_file: "${subject.import_file_path}"
-      output_dir: "/Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/audio_surround"
+      output_dir: "${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/audio_surround"
       flags:
         map: "0:a"
         vn: true
@@ -96,13 +96,16 @@ nodes:
     type: ffmpeg
     args:
       input_file: "${subject.import_file_path}"
-      output_dir: "/Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/subtitles_en"
-      output_filename: subtitles.vtt
+      output_dir: "${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/subtitles_en"
+      output_filename: segment_%03d.vtt
       flags:
         map: "0:s:0?"
-        vn: true
-        an: true
         c:s: webvtt
+        f: segment
+        segment_time: 6
+        segment_format: webvtt
+        segment_list: index.m3u8
+        segment_list_type: hls
     next:
       default: transcode_video_1080p
     editor:
@@ -113,7 +116,7 @@ nodes:
     type: ffmpeg
     args:
       input_file: "${subject.import_file_path}"
-      output_dir: "/Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/video_1080p"
+      output_dir: "${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/video_1080p"
       flags:
         map: "0:v"
         an: true
@@ -141,7 +144,7 @@ nodes:
     type: ffmpeg
     args:
       input_file: "${subject.import_file_path}"
-      output_dir: "/Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/video_720p"
+      output_dir: "${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/video_720p"
       flags:
         map: "0:v"
         an: true
@@ -170,14 +173,14 @@ nodes:
     args:
       operation: write
       overwrite: true
-      path: "/Users/Shared/nfs/media/Home/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/index.m3u8"
+      path: "${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}/index.m3u8"
       name: master_playlist
       contents: |
         #EXTM3U
         #EXT-X-VERSION:6
 
         # Subtitle renditions
-        #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="English",DEFAULT=YES,AUTOSELECT=YES,LANGUAGE="en",URI="subtitles_en/subtitles.vtt"
+        #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="English",DEFAULT=NO,AUTOSELECT=NO,LANGUAGE="en",URI="subtitles_en/index.m3u8"
 
         # Audio renditions (REQUIRED by Apple spec - Rule 2.3)
         #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="Stereo",DEFAULT=YES,AUTOSELECT=YES,LANGUAGE="en",URI="audio_stereo/index.m3u8"
