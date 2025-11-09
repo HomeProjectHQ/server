@@ -54,7 +54,7 @@ Rails.application.routes.draw do
     # Library endpoints
     resources :movies, only: [:index, :show] do
       member do
-        get 'stream', to: 'movies#stream', as: 'stream'
+        get 'stream/index.m3u8', to: 'movies#stream', as: 'stream'
         get 'stream/*segment_path', to: 'movies#segment', as: 'segment', format: false
       end
     end
@@ -69,7 +69,7 @@ Rails.application.routes.draw do
     # TV Episode endpoints
     resources :tv_episodes, only: [:show] do
       member do
-        get 'stream', to: 'tv_episodes#stream', as: 'stream'
+        get 'stream/index.m3u8', to: 'tv_episodes#stream', as: 'stream'
         get 'stream/*segment_path', to: 'tv_episodes#segment', as: 'segment', format: false
       end
     end

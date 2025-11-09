@@ -16,7 +16,7 @@ nodes:
     done: workflow_complete
   editor:
     x: -175.0
-    "y": 250.0
+    "y": 350.0
 - id: transcode
   name: Transcode Episodes in Parallel
   type: fork

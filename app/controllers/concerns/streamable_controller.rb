@@ -17,25 +17,11 @@ module StreamableController
     playlist_path = find_hls_file("index.m3u8")
     
     if playlist_path && File.exist?(playlist_path)
-      # Read and rewrite the playlist to use correct URL paths
-      playlist_content = File.read(playlist_path)
-      
-      # Rewrite relative paths to include 'stream/' prefix so they resolve correctly
-      rewritten_content = playlist_content.dup
-      
-      # Rewrite standalone variant paths: 720p/index.m3u8 -> stream/720p/index.m3u8
-      rewritten_content.gsub!(/^([^#\s].+\.m3u8)$/) do |match|
-        "stream/#{match}"
-      end
-      
-      # Rewrite URI attributes in EXT-X-MEDIA tags: URI="audio_stereo/index.m3u8" -> URI="stream/audio_stereo/index.m3u8"
-      rewritten_content.gsub!(/URI="([^"]+\.m3u8)"/) do |match|
-        path = $1
-        "URI=\"stream/#{path}\""
-      end
-      
-      render plain: rewritten_content,
-        content_type: "application/vnd.apple.mpegurl"
+      # Serve the playlist as-is (it's already generated with correct relative paths)
+      send_file playlist_path,
+        type: "application/vnd.apple.mpegurl",
+        disposition: "inline",
+        filename: "index.m3u8"
     else
       render json: { error: "HLS files not found" }, status: :not_found
     end
