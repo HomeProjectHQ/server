@@ -50,5 +50,14 @@ module Streamable
     # e.g., /api/movies/1/stream or /api/tv_episodes/1/stream
     raise NotImplementedError, "stream_url_path should be defined by routes"
   end
+  
+  # Base directory for streaming files (relative to Setting.root_path)
+  # Must be implemented by including model
+  # Examples:
+  #   Movie: "Movies/Inception (2010)"
+  #   TvEpisode: "TV Shows/Breaking Bad/s1e1"
+  def stream_base_dir
+    raise NotImplementedError, "#{self.class} must implement stream_base_dir"
+  end
 end
 

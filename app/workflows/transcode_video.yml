@@ -1,0 +1,239 @@
+---
+id: transcode_video
+name: Transcode Video to HLS
+description:
+  Transcode a video (Movie or TvEpisode) to HLS format with multiple quality
+  variants
+args:
+  video: Streamable video object (Movie or TvEpisode)
+nodes:
+  - id: existence_check
+    name: Check if HLS Master playlist Exists
+    start: true
+    type: file_system
+    args:
+      operation: exists
+      path: "${workflow.args.video.file_path}"
+    next:
+      default: already_exists
+    editor:
+      x: -75.0
+      "y": 650.0
+  - id: already_exists
+    name: Check if HLS Already Exists
+    type: conditional
+    args:
+      condition: "${existence_check.exists}"
+    next:
+      "true": workflow_complete
+      "false": set_processing
+    editor:
+      x: -75.0
+      "y": 825.0
+  - id: set_processing
+    name: Set Episode Processing Status
+    type: update
+    args:
+      table: "${workflow.args.video.class.name}"
+      id: "${workflow.args.video.id}"
+      values:
+        status: processing
+    next:
+      default: detect_source_info
+    editor:
+      x: 50.0
+      "y": 1000.0
+  - id: detect_source_info
+    name: Detect Source Video/Audio Properties
+    type: ffprobe
+    args:
+      input_file: "${workflow.args.video.import_file_path}"
+      flags:
+        v: quiet
+        print_format: json
+        show_streams: true
+    next:
+      default: determine_renditions
+    editor:
+      x: 50.0
+      "y": 1150.0
+  - id: determine_renditions
+    name: Determine All Renditions to Create
+    type: determine_renditions
+    args:
+      ffprobe_output: "${detect_source_info.output}"
+    next:
+      default: map_audio_renditions
+    editor:
+      x: 50.0
+      "y": 1300.0
+  - id: map_audio_renditions
+    name: Add Episode to Audio Renditions
+    type: map
+    args:
+      input: "${determine_renditions.audio}"
+      merge:
+        video: "${workflow.args.video}"
+    next:
+      default: create_audio_renditions
+    editor:
+      x: 50.0
+      "y": 1425.0
+  - id: create_audio_renditions
+    name: Create Audio Renditions in Parallel
+    type: fork
+    args:
+      workflow_id: transcode_audio_rendition
+      items: "${map_audio_renditions.output}"
+    next:
+      join: check_subtitle_strategy
+    editor:
+      x: 50.0
+      "y": 1575.0
+  - id: check_subtitle_strategy
+    name: Check if Should Download Subtitles
+    type: conditional
+    args:
+      condition: "${determine_renditions.needs_subtitle_download}"
+    next:
+      "true": search_opensubtitles
+      "false": extract_subtitles_eng
+    editor:
+      x: 50.0
+      "y": 1750.0
+  - id: search_opensubtitles
+    name: Search OpenSubtitles
+    type: opensubtitles_search
+    args:
+      tmdb_id:
+        "${workflow.args.video.respond_to?(:tmdb_id) ? workflow.args.video.tmdb_id
+        : nil}"
+      parent_tmdb_id:
+        "${workflow.args.video.respond_to?(:tv_season) ? workflow.args.video.tv_season.tv_show.tmdb_id
+        : nil}"
+      season_number:
+        "${workflow.args.video.respond_to?(:tv_season) ? workflow.args.video.tv_season.season_number
+        : nil}"
+      episode_number:
+        "${workflow.args.video.respond_to?(:episode_number) ? workflow.args.video.episode_number
+        : nil}"
+      type: "${workflow.args.video.class.name == 'Movie' ? 'movie' : 'episode'}"
+      languages: en
+      hearing_impaired: exclude
+    next:
+      default: download_subtitle
+      not_found: map_video_renditions
+    editor:
+      x: -225.0
+      "y": 1925.0
+  - id: download_subtitle
+    name: Download Subtitle from OpenSubtitles
+    type: opensubtitles_download
+    args:
+      file_id: "${search_opensubtitles.file_id}"
+      output_path: "${Rails.root}/tmp/subtitles/${workflow.args.video.id}_${Time.now.to_i}.srt"
+    next:
+      default: convert_srt_to_webvtt
+    editor:
+      x: -250.0
+      "y": 2125.0
+  - id: convert_srt_to_webvtt
+    name: Convert SRT to WebVTT Segments
+    type: ffmpeg
+    args:
+      input_file: "${download_subtitle.output_path}"
+      output_dir: "${Setting.root_path}/${workflow.args.video.stream_base_dir}/subtitles_en"
+      output_filename: segment_%03d.vtt
+      verify_output: index.m3u8
+      flags:
+        vn: true # Disable video (no video streams)
+        an: true # Disable audio (no audio streams)
+        map: "0" # Map subtitle stream (or "0" for SRT input)
+        c:s: webvtt # Use webvtt codec
+        f: segment # Use segment format (not hls)
+        segment_time: 6
+        segment_format: webvtt
+        segment_list: index.m3u8
+        segment_list_type: hls
+    next:
+      default: map_video_renditions
+    editor:
+      x: -250.0
+      "y": 2325.0
+  - id: extract_subtitles_eng
+    name: Extract English Subtitles
+    type: ffmpeg
+    args:
+      input_file: "${workflow.args.video.import_file_path}"
+      output_dir: "${Setting.root_path}/${workflow.args.video.stream_base_dir}/subtitles_en"
+      output_filename: segment_%03d.vtt
+      flags:
+        map: 0:s:0?
+        c:s: webvtt
+        f: segment
+        segment_time: 6
+        segment_format: webvtt
+        segment_list: index.m3u8
+        segment_list_type: hls
+    next:
+      default: map_video_renditions
+    editor:
+      x: 100.0
+      "y": 1950.0
+  - id: map_video_renditions
+    name: Add Episode to Video Renditions
+    type: map
+    args:
+      input: "${determine_renditions.video}"
+      merge:
+        video: "${workflow.args.video}"
+    next:
+      default: create_video_renditions
+    editor:
+      x: 100.0
+      "y": 2525.0
+  - id: create_video_renditions
+    name: Create Video Renditions in Parallel
+    type: fork
+    args:
+      workflow_id: transcode_video_rendition
+      items: "${map_video_renditions.output}"
+    next:
+      join: create_master_playlist
+    editor:
+      x: 100.0
+      "y": 2725.0
+  - id: create_master_playlist
+    name: Create Dynamic Master Playlist
+    type: generate_master_playlist
+    args:
+      base_dir: "${Setting.root_path}/${workflow.args.video.stream_base_dir}"
+    next:
+      default: mark_ready
+    editor:
+      x: 100.0
+      "y": 2925.0
+  - id: mark_ready
+    name: Mark Episode as Ready
+    type: update
+    args:
+      table: "${workflow.args.video.class.name}"
+      id: "${workflow.args.video.id}"
+      values:
+        status: ready
+        file_path: "${workflow.args.video.stream_base_dir}"
+        stream_qualities: 1080p,720p,stereo,surround
+    next:
+      default: workflow_complete
+    editor:
+      x: 100.0
+      "y": 3125.0
+  - id: workflow_complete
+    name: Workflow Complete
+    end: true
+    type: noop
+    editor:
+      x: 100.0
+      "y": 3325.0
+    next:
+      default:

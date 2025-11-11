@@ -1,11 +1,14 @@
 ---
-id: process_movie
-name: Process Single Movie File
+id: import_movie
+name: Import Movie
 description:
   Check if movie exists, parse filename, search TMDB, create or update
   movie record
 args:
-  file_info: File hash with path, name, type, mime_type
+  path: File path
+  name: File name
+  type: File type
+  mime_type: MIME type
 nodes:
   - id: find_movie_by_path
     name: Check if Movie Already Exists
@@ -14,7 +17,7 @@ nodes:
     args:
       table: Movie
       key: import_file_path
-      value: "${workflow.args.file_info.path}"
+      value: "${workflow.args.path}"
     next:
       default: done
       not_found: parse_movie_filename
@@ -26,11 +29,11 @@ nodes:
     type: media_parser
     args:
       operation: movie
-      path: "${workflow.args.file_info.path}"
+      path: "${workflow.args.path}"
     next:
       default: tmdb_movie_search
     editor:
-      x: 0.0
+      x: 25.0
       "y": -225.0
   - id: tmdb_movie_search
     name: TMDB Movie Search
@@ -43,7 +46,7 @@ nodes:
       default: tmdb_movie_found
       not_found: done
     editor:
-      x: 0.0
+      x: 25.0
       "y": -25.0
   - id: tmdb_movie_found
     name: TMDB Movie Found
@@ -54,8 +57,8 @@ nodes:
       "true": find_movie_by_tmdb
       "false": done
     editor:
-      x: -225.0
-      "y": 300.0
+      x: -200.0
+      "y": 275.0
   - id: find_movie_by_tmdb
     name: Check if Movie Exists by TMDB ID
     type: find_by
@@ -67,8 +70,8 @@ nodes:
       default: update_movie_path
       not_found: create_movie
     editor:
-      x: -450.0
-      "y": 625.0
+      x: -400.0
+      "y": 550.0
   - id: update_movie_path
     name: Update Movie Path (File Moved/Upgraded)
     type: update
@@ -76,7 +79,7 @@ nodes:
       table: Movie
       id: "${find_movie_by_tmdb.id}"
       values:
-        import_file_path: "${workflow.args.file_info.path}"
+        import_file_path: "${workflow.args.path}"
         title: "${tmdb_movie_search.results[0].title}"
         original_title: "${tmdb_movie_search.results[0].original_title}"
         year: "${tmdb_movie_search.results[0].release_date}"
@@ -98,13 +101,15 @@ nodes:
     next:
       default: done
     editor:
-      x: -575.0
-      "y": 950.0
+      x: -550.0
+      "y": 825.0
   - id: create_movie
-    name: Create New Movie
-    type: create
+    name: Find or Create Movie
+    type: find_or_create
     args:
       table: Movie
+      find_by:
+        tmdb_id: "${tmdb_movie_search.results[0].id}"
       values:
         title: "${tmdb_movie_search.results[0].title}"
         original_title: "${tmdb_movie_search.results[0].original_title}"
@@ -125,18 +130,18 @@ nodes:
         budget: "${tmdb_movie_search.results[0].budget}"
         revenue: "${tmdb_movie_search.results[0].revenue}"
         homepage: "${tmdb_movie_search.results[0].homepage}"
-        import_file_path: "${workflow.args.file_info.path}"
+        import_file_path: "${workflow.args.path}"
     next:
       default: done
     editor:
-      x: -300.0
-      "y": 950.0
+      x: -225.0
+      "y": 825.0
   - id: done
     name: Movie Processing Complete
     end: true
     type: noop
     editor:
-      x: -75.0
-      "y": 1325.0
+      x: 25.0
+      "y": 1150.0
     next:
       default:

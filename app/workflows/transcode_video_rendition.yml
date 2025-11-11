@@ -1,0 +1,112 @@
+---
+id: transcode_video_rendition
+name: Transcode Single Video Rendition
+description: Transcode a video-only rendition at specified resolution
+args:
+  video: Streamable video object (Movie or TvEpisode)
+  variant_name: Name of variant (e.g., "video_1080p", "video_720p")
+  width: Target width (e.g., 1920)
+  height: Target height (e.g., 1080)
+  bitrate: Video bitrate (e.g., "12M")
+  fps: Target frame rate (e.g., "30000/1001")
+  is_hdr: Boolean - whether source is HDR/Dolby Vision
+nodes:
+  - id: check_is_hdr
+    name: Check if Source is HDR
+    start: true
+    type: conditional
+    args:
+      condition: "${workflow.args.is_hdr}"
+    next:
+      "true": transcode_video_hdr
+      "false": transcode_video_sdr
+    editor:
+      x: 0
+      "y": 0
+  - id: transcode_video_hdr
+    name: Transcode HDR Video with Tone Mapping
+    type: ffmpeg
+    args:
+      input_file: "${workflow.args.video.import_file_path}"
+      output_dir: "${Setting.root_path}/${workflow.args.video.stream_base_dir}/${workflow.args.variant_name}"
+      flags:
+        map: "0:v"
+        an: true
+        c:v: hevc_videotoolbox
+        tag:v: hvc1
+        b:v: "${workflow.args.bitrate}"
+        pix_fmt: yuv420p
+        vf:
+          - scale:
+              width: "${workflow.args.width}"
+              height: "${workflow.args.height}"
+              force_original_aspect_ratio: decrease
+          - fps: "${workflow.args.fps}"
+          - zscale:
+              t: linear
+              npl: 100
+          - format: yuv420p
+          - zscale:
+              p: bt709
+              t: bt709
+              m: bt709
+              r: tv
+        force_key_frames: "expr:gte(t,n_forced*6)"
+        f: hls
+        hls_time: 6
+        hls_playlist_type: vod
+        hls_list_size: 0
+        hls_segment_type: fmp4
+        hls_flags: independent_segments
+        hls_fmp4_init_filename: init.mp4
+        hls_segment_filename: segment_%03d.m4s
+    next:
+      default: workflow_complete
+    editor:
+      x: -100
+      "y": 150
+  - id: transcode_video_sdr
+    name: Transcode SDR Video
+    type: ffmpeg
+    args:
+      input_file: "${workflow.args.video.import_file_path}"
+      output_dir: "${Setting.root_path}/${workflow.args.video.stream_base_dir}/${workflow.args.variant_name}"
+      flags:
+        map: "0:v"
+        an: true
+        c:v: hevc_videotoolbox
+        tag:v: hvc1
+        b:v: "${workflow.args.bitrate}"
+        pix_fmt: yuv420p
+        vf:
+          - scale:
+              width: "${workflow.args.width}"
+              height: "${workflow.args.height}"
+              force_original_aspect_ratio: decrease
+          - fps: "${workflow.args.fps}"
+          - format: yuv420p
+          - setparams:
+              color_primaries: bt709
+              color_trc: bt709
+              colorspace: bt709
+        force_key_frames: "expr:gte(t,n_forced*6)"
+        f: hls
+        hls_time: 6
+        hls_playlist_type: vod
+        hls_list_size: 0
+        hls_segment_type: fmp4
+        hls_flags: independent_segments
+        hls_fmp4_init_filename: init.mp4
+        hls_segment_filename: segment_%03d.m4s
+    next:
+      default: workflow_complete
+    editor:
+      x: 100
+      "y": 150
+  - id: workflow_complete
+    name: Workflow Complete
+    end: true
+    type: noop
+    editor:
+      x: 0
+      "y": 200

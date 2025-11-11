@@ -38,4 +38,9 @@ class TvEpisode < ApplicationRecord
       .order('tv_season.season_number ASC, tv_episodes.episode_number ASC')
       .first
   end
+  
+  # Base directory for streaming files (relative to Setting.root_path)
+  def stream_base_dir
+    "TV Shows/#{tv_season.tv_show.title}/s#{tv_season.season_number}e#{episode_number}"
+  end
 end

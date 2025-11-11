@@ -2,7 +2,8 @@
 id: generate_featured_tv_items
 name: Generate Featured TV Items
 description: Generate featured items for the TV client for a profile
-subject_type: Profile
+args:
+  profile: Profile object
 nodes:
   - id: watch_history
     name: Collect Watch History
@@ -11,7 +12,7 @@ nodes:
     args:
       table: WatchProgress
       conditions:
-        profile_id: "${subject.id}"
+        profile_id: "${workflow.args.profile.id}"
         last_watched_at: "${1.week.ago..Time.current}"
     next:
       default: generate_epic_stage_items
@@ -27,10 +28,10 @@ nodes:
       schema: FeaturedItems
       prompt_name: generate_epic_stage_items
       prompt_args:
-        profile: "${subject}"
+        profile: "${workflow.args.profile}"
         watch_history: "${watch_history.data.records}"
-        movies: "${subject.movies}"
-        tv_shows: "${subject.tv_shows}"
+        movies: "${workflow.args.profile.movies}"
+        tv_shows: "${workflow.args.profile.tv_shows}"
     next:
       default: epic_stage_items
     editor:
@@ -54,7 +55,7 @@ nodes:
     args:
       table: FeaturedItem
       values:
-        profile_id: "${subject.id}"
+        profile_id: "${workflow.args.profile.id}"
         featurable_type: "${epic_stage_items.item.type}"
         featurable_id: "${epic_stage_items.item.itemId}"
         caption: "${epic_stage_items.item.caption}"
@@ -70,7 +71,7 @@ nodes:
     type: destroy
     args:
       records:
-        "${subject.featured_items.where(placements: 'epic_stage').order(created_at:
+        "${workflow.args.profile.featured_items.where(placements: 'epic_stage').order(created_at:
         :asc).offset(5)}"
     next:
       default: done

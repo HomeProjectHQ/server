@@ -47,4 +47,9 @@ class Movie < ApplicationRecord
       .limit(1)
       .first
   end
+  
+  # Base directory for streaming files (relative to Setting.root_path)
+  def stream_base_dir
+    "Movies/#{title}#{year ? " (#{year})" : ''}"
+  end
 end

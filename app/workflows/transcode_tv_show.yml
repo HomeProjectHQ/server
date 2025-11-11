@@ -1,39 +1,40 @@
 ---
 id: transcode_tv_show
 name: Transcode TV Show to HLS
-subject_type: TvShow
 description: Transcode all episodes of a TV show to HLS format
+args:
+  tv_show: TvShow object (passed as subject when invoked)
 nodes:
-- id: seasons
-  name: All Seasons
-  start: true
-  type: loop
-  args:
-    loop_source_rel: "${subject.tv_seasons}"
-    loop_iteration: "${seasons.iteration}"
-  next:
-    loop: transcode
-    done: workflow_complete
-  editor:
-    x: -175.0
-    "y": 350.0
-- id: transcode
-  name: Transcode Episodes in Parallel
-  type: fork
-  args:
-    workflow_id: transcode_episode
-    items: "${seasons.item.tv_episodes}"
-  next:
-    join: seasons
-  editor:
-    x: -350.0
-    "y": 625.0
-- id: workflow_complete
-  name: Workflow Complete
-  end: true
-  type: noop
-  editor:
-    x: -125.0
-    "y": 750.0
-  next:
-    default:
+  - id: seasons
+    name: All Seasons
+    start: true
+    type: loop
+    args:
+      loop_source_rel: "${workflow.args.tv_show.tv_seasons}"
+      loop_iteration: "${seasons.iteration}"
+    next:
+      loop: transcode
+      done: workflow_complete
+    editor:
+      x: -175.0
+      "y": 350.0
+  - id: transcode
+    name: Transcode Episodes in Parallel
+    type: fork
+    args:
+      workflow_id: transcode_video
+      items: "${seasons.item.tv_episodes}"
+      next:
+        join: seasons
+      editor:
+        x: -350.0
+        "y": 625.0
+  - id: workflow_complete
+    name: Workflow Complete
+    end: true
+    type: noop
+    editor:
+      x: -125.0
+      "y": 750.0
+    next:
+      default:

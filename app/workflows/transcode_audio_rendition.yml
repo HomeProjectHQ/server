@@ -1,0 +1,44 @@
+---
+id: transcode_audio_rendition
+name: Transcode Single Audio Rendition
+description: Transcode an audio-only rendition at specified settings
+args:
+  video: Streamable video object (Movie or TvEpisode)
+  variant_name: Name of variant (e.g., "audio_stereo", "audio_surround")
+  bitrate: Audio bitrate (e.g., "192k", "320k")
+  channels: Channel count (e.g., 2, 6)
+nodes:
+  - id: transcode_audio
+    name: Transcode Audio Only
+    start: true
+    type: ffmpeg
+    args:
+      input_file: "${workflow.args.video.import_file_path}"
+      output_dir: "${Setting.root_path}/${workflow.args.video.stream_base_dir}/${workflow.args.variant_name}"
+      flags:
+        map: "0:a"
+        vn: true
+        c:a: aac
+        b:a: "${workflow.args.bitrate}"
+        ac: "${workflow.args.channels}"
+        ar: 48000
+        f: hls
+        hls_time: 6
+        hls_playlist_type: vod
+        hls_list_size: 0
+        hls_segment_type: fmp4
+        hls_flags: independent_segments
+        hls_fmp4_init_filename: init.mp4
+        hls_segment_filename: segment_%03d.m4s
+    next:
+      default: workflow_complete
+    editor:
+      x: 0
+      "y": 0
+  - id: workflow_complete
+    name: Workflow Complete
+    end: true
+    type: noop
+    editor:
+      x: 0
+      "y": 200
