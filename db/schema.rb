@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_07_200200) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_11_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "ltree"
   enable_extension "pg_catalog.plpgsql"
@@ -140,16 +140,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_200200) do
     t.index ["tmdb_id"], name: "index_genres_on_tmdb_id", unique: true
   end
 
-  create_table "media", force: :cascade do |t|
-    t.string "title"
-    t.text "description"
-    t.string "status"
-    t.string "hls_path"
-    t.integer "duration"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-  end
-
   create_table "media_folders", force: :cascade do |t|
     t.string "name", null: false
     t.string "path", null: false
@@ -201,23 +191,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_200200) do
     t.integer "stream_duration"
     t.text "stream_qualities"
     t.index ["tmdb_id"], name: "index_movies_on_tmdb_id", unique: true
-  end
-
-  create_table "picks", force: :cascade do |t|
-    t.bigint "profile_id", null: false
-    t.string "pickable_type", null: false
-    t.bigint "pickable_id", null: false
-    t.string "caption"
-    t.jsonb "reasoning", default: {}
-    t.jsonb "context_snapshot", default: {}
-    t.datetime "generated_at"
-    t.datetime "expires_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["pickable_type", "pickable_id"], name: "index_picks_on_pickable"
-    t.index ["profile_id", "generated_at"], name: "index_picks_on_profile_id_and_generated_at"
-    t.index ["profile_id", "pickable_type", "pickable_id"], name: "index_picks_on_profile_id_and_pickable_type_and_pickable_id"
-    t.index ["profile_id"], name: "index_picks_on_profile_id"
   end
 
   create_table "profile_movies", force: :cascade do |t|
@@ -505,7 +478,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_07_200200) do
   add_foreign_key "featured_items", "profiles"
   add_foreign_key "movie_genres", "genres"
   add_foreign_key "movie_genres", "movies"
-  add_foreign_key "picks", "profiles"
   add_foreign_key "profile_movies", "movies"
   add_foreign_key "profile_movies", "profiles"
   add_foreign_key "profile_songs", "profiles"

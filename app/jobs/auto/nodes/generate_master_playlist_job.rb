@@ -17,11 +17,12 @@ module Auto
       #   args:
       #     base_dir: "${Setting.root_path}/TV Shows/${subject.tv_season.tv_show.title}/s${subject.tv_season.season_number}e${subject.episode_number}"
       class GenerateMasterPlaylistJob < NodeJob
-        def execute(node)
-          args = node.args
-          
-          base_dir = args[:base_dir]
-          raise ArgumentError, "base_dir is required" unless base_dir.present?
+      def execute(node)
+        args = node.args
+        
+        base_dir = args[:base_dir]
+        is_hdr = args[:is_hdr] || false
+        raise ArgumentError, "base_dir is required" unless base_dir.present?
           
           unless Dir.exist?(base_dir)
             raise "Base directory not found: #{base_dir}"
@@ -29,8 +30,8 @@ module Auto
           
           log_info(node, "Generating master playlist in #{base_dir}")
           
-          # Build playlist content
-          playlist = build_playlist(base_dir, args)
+        # Build playlist content
+        playlist = build_playlist(base_dir, args.merge(is_hdr: is_hdr))
           
           # Write playlist file
           playlist_path = File.join(base_dir, "index.m3u8")
@@ -72,7 +73,8 @@ module Auto
           add_audio_renditions(playlist, base_dir)
           
           # Add video variants
-          add_video_variants(playlist, base_dir, has_subtitles)
+          is_hdr = args[:is_hdr] || false
+          add_video_variants(playlist, base_dir, has_subtitles, is_hdr)
           
           playlist
         end
@@ -93,7 +95,7 @@ module Auto
           playlist << ""
         end
         
-        def add_video_variants(playlist, base_dir, has_subtitles)
+        def add_video_variants(playlist, base_dir, has_subtitles, is_hdr)
           # Define video variants in priority order
           video_variants = [
             { dir: "video_4k", bandwidth: 25000000, resolution: "3840x2160", name: "4K" },
@@ -104,19 +106,34 @@ module Auto
           
           subs_attr = has_subtitles ? ',SUBTITLES="subs"' : ''
           
-          video_variants.each do |variant|
-            variant_path = File.join(base_dir, variant[:dir], "index.m3u8")
-            
-            next unless File.exist?(variant_path)
-            
-            # Build stream info attributes
-            res_attr = variant[:resolution] ? ",RESOLUTION=#{variant[:resolution]}" : ""
-            
-            playlist << "# #{variant[:name]} variant"
-            playlist << "#EXT-X-STREAM-INF:BANDWIDTH=#{variant[:bandwidth]}#{res_attr},AUDIO=\"audio\"#{subs_attr}"
-            playlist << "#{variant[:dir]}/index.m3u8"
-            playlist << ""
-          end
+        video_variants.each do |variant|
+          variant_path = File.join(base_dir, variant[:dir], "index.m3u8")
+          
+          next unless File.exist?(variant_path)
+          
+          # Build stream info attributes
+          res_attr = variant[:resolution] ? ",RESOLUTION=#{variant[:resolution]}" : ""
+          
+          # Determine codec string based on whether source was HDR
+          # CODECS: hvc1 = HEVC, mp4a.40.2 = AAC-LC
+          # Format: hvc1.profile.tier.level.constraints
+          # For 10-bit HDR Main 10: hvc1.2.4.L150.90 (profile=2, main tier, level 5.0, 10-bit constraints)
+          # For 8-bit SDR Main: hvc1.1.6.L120.B0 (profile=1, high tier, level 4.0, 8-bit constraints)
+          codecs = is_hdr ? "hvc1.2.4.L150.90,mp4a.40.2" : "hvc1.1.6.L120.B0,mp4a.40.2"
+          
+          # Apple HLS requirements (Rules 9.14, 9.15, 9.16)
+          # AVERAGE-BANDWIDTH is required (for VOD, same as BANDWIDTH)
+          # FRAME-RATE is required for video content (29.970 fps for our transcodes)
+          # VIDEO-RANGE=PQ is required for HDR content (PQ = HDR10/smpte2084)
+          avg_bandwidth = variant[:bandwidth]
+          frame_rate = "29.970"
+          video_range_attr = is_hdr ? ",VIDEO-RANGE=PQ" : ""
+          
+          playlist << "# #{variant[:name]} variant"
+          playlist << "#EXT-X-STREAM-INF:BANDWIDTH=#{variant[:bandwidth]},AVERAGE-BANDWIDTH=#{avg_bandwidth}#{res_attr},FRAME-RATE=#{frame_rate},CODECS=\"#{codecs}\"#{video_range_attr},AUDIO=\"audio\"#{subs_attr}"
+          playlist << "#{variant[:dir]}/index.m3u8"
+          playlist << ""
+        end
         end
       end
     end

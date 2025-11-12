@@ -24,7 +24,7 @@ nodes:
       x: 0
       "y": 0
   - id: transcode_video_hdr
-    name: Transcode HDR Video with Tone Mapping
+    name: Transcode HDR Video (Preserve HDR with libx265)
     type: ffmpeg
     args:
       input_file: "${workflow.args.video.import_file_path}"
@@ -32,25 +32,17 @@ nodes:
       flags:
         map: "0:v"
         an: true
-        c:v: hevc_videotoolbox
-        tag:v: hvc1
-        b:v: "${workflow.args.bitrate}"
-        pix_fmt: yuv420p
+        "c:v": hevc_videotoolbox # Quote this
+        "tag:v": hvc1 # Quote this
+        "profile:v": main10 # Quote this
+        "b:v": "${workflow.args.bitrate}" # Quote this
+        pix_fmt: p010le
         vf:
           - scale:
               width: "${workflow.args.width}"
               height: "${workflow.args.height}"
               force_original_aspect_ratio: decrease
           - fps: "${workflow.args.fps}"
-          - zscale:
-              t: linear
-              npl: 100
-          - format: yuv420p
-          - zscale:
-              p: bt709
-              t: bt709
-              m: bt709
-              r: tv
         force_key_frames: "expr:gte(t,n_forced*6)"
         f: hls
         hls_time: 6

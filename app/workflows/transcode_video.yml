@@ -25,7 +25,7 @@ nodes:
     args:
       condition: "${existence_check.exists}"
     next:
-      "true": workflow_complete
+      "true": set_processing
       "false": set_processing
     editor:
       x: -75.0
@@ -53,13 +53,13 @@ nodes:
         print_format: json
         show_streams: true
     next:
-      default: determine_renditions
+      default: video_properties
     editor:
       x: 50.0
       "y": 1150.0
-  - id: determine_renditions
-    name: Determine All Renditions to Create
-    type: determine_renditions
+  - id: video_properties
+    name: Extract Video Properties
+    type: extract_video_properties
     args:
       ffprobe_output: "${detect_source_info.output}"
     next:
@@ -71,7 +71,7 @@ nodes:
     name: Add Episode to Audio Renditions
     type: map
     args:
-      input: "${determine_renditions.audio}"
+      input: "${video_properties.renditions.audio}"
       merge:
         video: "${workflow.args.video}"
     next:
@@ -94,7 +94,7 @@ nodes:
     name: Check if Should Download Subtitles
     type: conditional
     args:
-      condition: "${determine_renditions.needs_subtitle_download}"
+      condition: "${video_properties.needs_subtitle_download}"
     next:
       "true": search_opensubtitles
       "false": extract_subtitles_eng
@@ -184,7 +184,7 @@ nodes:
     name: Add Episode to Video Renditions
     type: map
     args:
-      input: "${determine_renditions.video}"
+      input: "${video_properties.renditions.video}"
       merge:
         video: "${workflow.args.video}"
     next:
@@ -208,6 +208,7 @@ nodes:
     type: generate_master_playlist
     args:
       base_dir: "${Setting.root_path}/${workflow.args.video.stream_base_dir}"
+      is_hdr: "${video_properties.is_hdr}"
     next:
       default: mark_ready
     editor:

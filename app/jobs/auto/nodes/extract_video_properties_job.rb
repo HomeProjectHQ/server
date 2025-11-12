@@ -1,8 +1,8 @@
 module Auto
   module Nodes
-    # DetermineRenditionsJob - Determine which renditions to create based on source
+    # ExtractVideoPropertiesJob - Extract video properties and determine renditions
     #
-    # Takes ffprobe output and returns lists of audio, video, and subtitle renditions needed
+    # Takes ffprobe output and returns source properties plus rendition configs
     #
     # Args:
     #   Required:
@@ -10,15 +10,20 @@ module Auto
     #
     # Returns:
     #   data:
-    #     audio: Array of audio rendition configs
-    #     video: Array of video rendition configs
-    #     needs_subtitles: Boolean
+    #     is_hdr: Boolean (common property)
+    #     source_height: Integer
+    #     source_fps: Float
+    #     audio_channels: Integer
+    #     needs_subtitle_download: Boolean
+    #     renditions:
+    #       audio: Array of audio rendition configs
+    #       video: Array of video rendition configs
     #
     # Example:
-    #   type: determine_renditions
+    #   type: extract_video_properties
     #   args:
     #     ffprobe_output: "${detect_source_info.output}"
-    class DetermineRenditionsJob < NodeJob
+    class ExtractVideoPropertiesJob < NodeJob
       def execute(node)
         args = node.args
         
@@ -110,9 +115,17 @@ module Auto
         
         {
           data: {
-            audio: audio_renditions,
-            video: video_renditions,
-            needs_subtitle_download: needs_subtitle_download
+            # Top-level properties (common across all renditions)
+            is_hdr: is_hdr,
+            source_height: height,
+            source_fps: source_fps,
+            audio_channels: channels,
+            needs_subtitle_download: needs_subtitle_download,
+            # Rendition configs
+            renditions: {
+              audio: audio_renditions,
+              video: video_renditions
+            }
           },
           selection: :default
         }

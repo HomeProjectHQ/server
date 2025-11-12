@@ -16,7 +16,7 @@ nodes:
       input_file: "${workflow.args.video.import_file_path}"
       output_dir: "${Setting.root_path}/${workflow.args.video.stream_base_dir}/${workflow.args.variant_name}"
       flags:
-        map: "0:a"
+        map: "0:a:0"
         vn: true
         c:a: aac
         b:a: "${workflow.args.bitrate}"
