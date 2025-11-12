@@ -97,11 +97,16 @@ module Auto
         
         def add_video_variants(playlist, base_dir, has_subtitles, is_hdr)
           # Define video variants in priority order
+          # Check for both HDR and SDR versions (new naming: video_4k_hdr, video_4k_sdr)
           video_variants = [
-            { dir: "video_4k", bandwidth: 25000000, resolution: "3840x2160", name: "4K" },
-            { dir: "video_1080p", bandwidth: 12192000, resolution: "1920x1080", name: "1080p" },
-            { dir: "video_720p", bandwidth: 5192000, resolution: "1280x720", name: "720p" },
-            { dir: "video_source", bandwidth: 3000000, resolution: nil, name: "Source" }
+            { dir: "video_4k_hdr", bandwidth: 25000000, resolution: "3840x2160", name: "4K HDR", is_hdr_variant: true },
+            { dir: "video_4k_sdr", bandwidth: 25000000, resolution: "3840x2160", name: "4K SDR", is_hdr_variant: false },
+            { dir: "video_4k", bandwidth: 25000000, resolution: "3840x2160", name: "4K", is_hdr_variant: is_hdr },  # Legacy
+            { dir: "video_1080p_hdr", bandwidth: 12192000, resolution: "1920x1080", name: "1080p HDR", is_hdr_variant: true },
+            { dir: "video_1080p_sdr", bandwidth: 12192000, resolution: "1920x1080", name: "1080p SDR", is_hdr_variant: false },
+            { dir: "video_1080p", bandwidth: 12192000, resolution: "1920x1080", name: "1080p", is_hdr_variant: is_hdr },  # Legacy
+            { dir: "video_720p", bandwidth: 5192000, resolution: "1280x720", name: "720p", is_hdr_variant: false },
+            { dir: "video_source", bandwidth: 3000000, resolution: nil, name: "Source", is_hdr_variant: false }
           ]
           
           subs_attr = has_subtitles ? ',SUBTITLES="subs"' : ''
@@ -114,20 +119,21 @@ module Auto
           # Build stream info attributes
           res_attr = variant[:resolution] ? ",RESOLUTION=#{variant[:resolution]}" : ""
           
-          # Determine codec string based on whether source was HDR
+          # Determine codec string based on whether THIS VARIANT is HDR (not source)
           # CODECS: hvc1 = HEVC, mp4a.40.2 = AAC-LC
           # Format: hvc1.profile.tier.level.constraints
-          # For 10-bit HDR Main 10: hvc1.2.4.L150.90 (profile=2, main tier, level 5.0, 10-bit constraints)
+          # For 10-bit HDR Main 10: hvc1.2.4.L123.B0 (profile=2, main tier, level 4.1, Safari compatible)
           # For 8-bit SDR Main: hvc1.1.6.L120.B0 (profile=1, high tier, level 4.0, 8-bit constraints)
-          codecs = is_hdr ? "hvc1.2.4.L150.90,mp4a.40.2" : "hvc1.1.6.L120.B0,mp4a.40.2"
+          is_hdr_variant = variant[:is_hdr_variant]
+          codecs = is_hdr_variant ? "hvc1.2.4.L123.B0,mp4a.40.2" : "hvc1.1.6.L120.B0,mp4a.40.2"
           
           # Apple HLS requirements (Rules 9.14, 9.15, 9.16)
           # AVERAGE-BANDWIDTH is required (for VOD, same as BANDWIDTH)
           # FRAME-RATE is required for video content (29.970 fps for our transcodes)
-          # VIDEO-RANGE=PQ is required for HDR content (PQ = HDR10/smpte2084)
+          # VIDEO-RANGE must be specified for ALL variants (SDR or PQ for HDR)
           avg_bandwidth = variant[:bandwidth]
           frame_rate = "29.970"
-          video_range_attr = is_hdr ? ",VIDEO-RANGE=PQ" : ""
+          video_range_attr = is_hdr_variant ? ",VIDEO-RANGE=PQ" : ",VIDEO-RANGE=SDR"
           
           playlist << "# #{variant[:name]} variant"
           playlist << "#EXT-X-STREAM-INF:BANDWIDTH=#{variant[:bandwidth]},AVERAGE-BANDWIDTH=#{avg_bandwidth}#{res_attr},FRAME-RATE=#{frame_rate},CODECS=\"#{codecs}\"#{video_range_attr},AUDIO=\"audio\"#{subs_attr}"

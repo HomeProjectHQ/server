@@ -89,25 +89,45 @@ module Auto
         end
         
         # Determine video renditions needed based on source height
+        # For HDR sources, create both HDR and SDR versions for compatibility
+        # For SDR sources, create SDR only
         video_renditions = case height
         when 2160..Float::INFINITY  # 4K source
-          [
-            { variant_name: 'video_4k', width: 3840, height: 2160, bitrate: '25M', fps: target_fps, is_hdr: is_hdr },
-            { variant_name: 'video_1080p', width: 1920, height: 1080, bitrate: '12M', fps: target_fps, is_hdr: is_hdr },
-            { variant_name: 'video_720p', width: 1280, height: 720, bitrate: '5M', fps: target_fps, is_hdr: is_hdr }
-          ]
+          if is_hdr
+            [
+              { variant_name: 'video_4k_hdr', width: 3840, height: 2160, bitrate: '25M', fps: target_fps, is_hdr: true },
+              { variant_name: 'video_4k_sdr', width: 3840, height: 2160, bitrate: '25M', fps: target_fps, is_hdr: false },
+              { variant_name: 'video_1080p_hdr', width: 1920, height: 1080, bitrate: '12M', fps: target_fps, is_hdr: true },
+              { variant_name: 'video_1080p_sdr', width: 1920, height: 1080, bitrate: '12M', fps: target_fps, is_hdr: false },
+              { variant_name: 'video_720p', width: 1280, height: 720, bitrate: '5M', fps: target_fps, is_hdr: false }
+            ]
+          else
+            [
+              { variant_name: 'video_4k', width: 3840, height: 2160, bitrate: '25M', fps: target_fps, is_hdr: false },
+              { variant_name: 'video_1080p', width: 1920, height: 1080, bitrate: '12M', fps: target_fps, is_hdr: false },
+              { variant_name: 'video_720p', width: 1280, height: 720, bitrate: '5M', fps: target_fps, is_hdr: false }
+            ]
+          end
         when 1080..2159  # 1080p source
-          [
-            { variant_name: 'video_1080p', width: 1920, height: 1080, bitrate: '12M', fps: target_fps, is_hdr: is_hdr },
-            { variant_name: 'video_720p', width: 1280, height: 720, bitrate: '5M', fps: target_fps, is_hdr: is_hdr }
-          ]
+          if is_hdr
+            [
+              { variant_name: 'video_1080p_hdr', width: 1920, height: 1080, bitrate: '12M', fps: target_fps, is_hdr: true },
+              { variant_name: 'video_1080p_sdr', width: 1920, height: 1080, bitrate: '12M', fps: target_fps, is_hdr: false },
+              { variant_name: 'video_720p', width: 1280, height: 720, bitrate: '5M', fps: target_fps, is_hdr: false }
+            ]
+          else
+            [
+              { variant_name: 'video_1080p', width: 1920, height: 1080, bitrate: '12M', fps: target_fps, is_hdr: false },
+              { variant_name: 'video_720p', width: 1280, height: 720, bitrate: '5M', fps: target_fps, is_hdr: false }
+            ]
+          end
         when 720..1079  # 720p source
           [
-            { variant_name: 'video_720p', width: 1280, height: 720, bitrate: '5M', fps: target_fps, is_hdr: is_hdr }
+            { variant_name: 'video_720p', width: 1280, height: 720, bitrate: '5M', fps: target_fps, is_hdr: false }
           ]
         else  # < 720p source
           [
-            { variant_name: 'video_source', width: nil, height: nil, bitrate: '3M', fps: target_fps, is_hdr: is_hdr }
+            { variant_name: 'video_source', width: nil, height: nil, bitrate: '3M', fps: target_fps, is_hdr: false }
           ]
         end
         
